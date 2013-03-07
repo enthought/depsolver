@@ -297,6 +297,9 @@ class Version(object):
         self._ensure_can_compare(other)
         return self._comparable_parts == other._comparable_parts
 
+    def __hash__(self):
+        return hash(repr(self))
+
     def __ne__(self, other):
         return not self.__eq__(other)
 

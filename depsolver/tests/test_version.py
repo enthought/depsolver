@@ -38,6 +38,13 @@ class TestVersion(unittest.TestCase):
         v = Version(1, 2, 0)
         self.assertEqual(v.__dict__, r_v.__dict__)
 
+    def test_hashing(self):
+        r_v = V("1.2.0")
+        v = V("1.2.0")
+
+        self.assertEqual(v, r_v)
+        self.assertEqual(hash(v), hash(r_v))
+
     def test_invalid_arguments(self):
         self.assertRaises(Exception, lambda: Version("a", 2, 0))
         self.assertRaises(Exception, lambda: Version(1, "a", 0))

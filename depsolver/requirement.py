@@ -3,7 +3,7 @@ from depsolver.errors \
         DepSolverError
 from depsolver.constraints \
     import \
-        Equal, GEQ, LEQ
+        Equal, GEQ, GT, LEQ, LT, Not
 from depsolver.requirement_parser \
     import \
         RawRequirementParser
@@ -59,27 +59,37 @@ class Requirement(object):
 
         # transform GE and LE into NOT + corresponding GEQ/LEQ
         # Take the min of GEQ, max of LEQ
-        equals = [req for req in specs if isinstance(req, Equal)]
+        equals = set(req for req in specs if isinstance(req, Equal))
         if len(equals) > 1:
             self._cannot_match = True
             self._equal = None
         elif len(equals) == 1:
             self._cannot_match = False
-            self._equal = V(equals[0].version)
+            self._equal = V(equals.pop().version)
             self._min_bound = self._max_bound = self._equal
         else:
             self._cannot_match = False
             self._equal = None
 
+        self._not_equals = set(V(req.version) for req in specs if isinstance(req, Not))
+
+        gts = [req for req in specs if isinstance(req, GT)]
+        lts = [req for req in specs if isinstance(req, LT)]
+
         geq = [req for req in specs if isinstance(req, GEQ)]
+        geq.extend(gts)
         geq_versions = [V(g.version) for g in geq]
         if len(geq_versions) > 0:
             self._min_bound = max(geq_versions)
 
         leq = [req for req in specs if isinstance(req, LEQ)]
+        leq.extend(lts)
         leq_versions = [V(l.version) for l in leq]
         if len(leq_versions) > 0:
             self._max_bound = min(leq_versions)
+
+        self._not_equals.update(V(gt.version) for gt in gts)
+        self._not_equals.update(V(lt.version) for lt in lts)
 
         if self._min_bound > self._max_bound:
             self._cannot_match = True
@@ -97,6 +107,8 @@ class Requirement(object):
                 r.append("%s <= %s" % (self.name, self._max_bound))
             if self._min_bound == MinVersion() and self._max_bound == MaxVersion():
                 r.append("%s *" % self.name)
+            for neq in self._not_equals:
+                r.append("%s != %s" % (self.name, neq))
         return ", ".join(r)
 
     def __eq__(self, other):
@@ -104,6 +116,9 @@ class Requirement(object):
 
     def __hash__(self):
         return hash(repr(self))
+
+    def _nonempty_interval_intersection(self, provider):
+        return self._max_bound >= provider._min_bound and provider._max_bound >= self._min_bound
 
     def matches(self, provider):
         """Return True if provider requirement and this requirement are
@@ -128,22 +143,14 @@ class Requirement(object):
             return False
         if self._cannot_match:
             return False
-        if self._equal is None:
-            if provider._equal is None:
-                if self._min_bound > provider._min_bound:
-                    return provider.matches(self)
-                else:
-                    return self._max_bound >= provider._min_bound
+        if self._nonempty_interval_intersection(provider):
+            if self._equal or provider._equal:
+                return self._equal not in provider._not_equals \
+                        and provider._equal not in self._not_equals
             else:
-                if provider._equal >= self._min_bound and provider._equal <= self._max_bound:
-                    return True
-                else:
-                    return False
+                return True
         else:
-            if provider._equal is not None:
-                return provider._equal == self._equal
-            else:
-                return provider.matches(self)
+            return False
 
 class RequirementParser(object):
     def __init__(self):

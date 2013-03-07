@@ -8,7 +8,7 @@ from depsolver.errors \
         DepSolverError
 from depsolver.constraints \
     import \
-        Any, Equal, GEQ, LEQ
+        Any, Equal, GEQ, GT, LEQ, LT, Not
 from depsolver.version \
     import \
         Version
@@ -20,10 +20,10 @@ _DEFAULT_SCANNER = re.Scanner([
     (r"\d[\w\.\-\+]*", lambda scanner, token: VersionToken(token)),
     (r"==", lambda scanner, token: EqualToken(token)),
     (r">=", lambda scanner, token: GEQToken(token)),
-    #(r">", lambda scanner, token: ComparisonToken(token)),
+    (r">", lambda scanner, token: GTToken(token)),
     (r"<=", lambda scanner, token: LEQToken(token)),
-    #(r"<", lambda scanner, token: ComparisonToken(token)),
-    #(r"!=", lambda scanner, token: ComparisonToken(token)),
+    (r"<", lambda scanner, token: LTToken(token)),
+    (r"!=", lambda scanner, token: NotToken(token)),
     (",", lambda scanner, token: CommaToken(token)),
     (" +", lambda scanner, token: None),
 ])
@@ -55,11 +55,20 @@ class ComparisonToken(Token):
 class LEQToken(ComparisonToken):
     typ = "leq"
 
+class LTToken(ComparisonToken):
+    typ = "lt"
+
 class GEQToken(ComparisonToken):
     typ = "geq"
 
+class GTToken(ComparisonToken):
+    typ = "gt"
+
 class EqualToken(ComparisonToken):
     typ = "equal"
+
+class NotToken(ComparisonToken):
+    typ = "not"
 
 def iter_over_requirement(tokens):
     """Yield a single requirement 'block' (i.e. a sequence of tokens between
@@ -85,7 +94,10 @@ def iter_over_requirement(tokens):
 _OPERATOR_TO_SPEC = {
         EqualToken: Equal,
         GEQToken: GEQ,
+        GTToken: GT,
         LEQToken: LEQ,
+        LTToken: LT,
+        NotToken: Not,
 }
 
 def _spec_factory(comparison_token):

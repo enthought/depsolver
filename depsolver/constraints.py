@@ -23,8 +23,17 @@ class _VersionConstraint(_Constraint):
 class Equal(_VersionConstraint):
     pass
 
+class Not(_VersionConstraint):
+    pass
+
 class GEQ(_VersionConstraint):
     pass
 
+class GT(_VersionConstraint):
+    pass
+
 class LEQ(_VersionConstraint):
+    pass
+
+class LT(_VersionConstraint):
     pass

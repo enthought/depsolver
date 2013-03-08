@@ -20,6 +20,9 @@ class _VersionConstraint(_Constraint):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self.version == other.version
 
+    def __hash__(self):
+        return hash(repr(self))
+
 class Equal(_VersionConstraint):
     pass
 

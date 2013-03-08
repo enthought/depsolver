@@ -75,10 +75,18 @@ class TestRawRequirementParser(unittest.TestCase):
         self.assertRaises(DepSolverError, lambda : parser.parse("numpy >= "))
 
     def test_parser_glob(self):
+        parser = RawRequirementParser()
+
+        r_constraints = {"numpy": [GEQ("1.0.0"), LT("2.0.0")]}
+        self.assertEqual(parser.parse("numpy == 1.*"), r_constraints)
+
         r_constraints = {"numpy": [GEQ("1.3.0"), LT("1.4.0")]}
         parser = RawRequirementParser()
 
         self.assertEqual(parser.parse("numpy == 1.3.*"), r_constraints)
+
+        self.assertRaises(NotImplementedError, lambda : parser.parse("numpy == 1.*-build"))
+        self.assertRaises(NotImplementedError, lambda : parser.parse("numpy == 1.0.0-b*"))
 
     def test_parser_compounds(self):
         parse_dict = RawRequirementParser().parse("numpy >= 1.3.0, numpy <= 2.0.0")

@@ -116,9 +116,10 @@ def _glob_version_to_constraints(version_string):
     if n_stars == 0 or n_stars > 1:
         raise InvalidVersion("version string %r is not a valid glob version" % version_string)
     else:
+        if "-" in version_string or "+" in version_string:
+            raise NotImplementedError("glob version witg dev/release parts not supported yet")
+
         left_part = version_string[:version_string.index("*")]
-        if "-" in left_part or "+" in left_part:
-            raise NotImplementedError("glob version in dev/release parts not supported yet")
 
         if not _LOOSE_VERSION_RE.match(left_part + "0"):
             raise InvalidVersion("version string %s is not a valid glob version" \
@@ -135,7 +136,7 @@ def _glob_version_to_constraints(version_string):
                                  % version_string)
 
         left = GEQ(".".join(parts + ["0"] * (3 - len(parts))))
-        parts[-1] = str(int(parts[1]) + 1)
+        parts[-1] = str(int(parts[-1]) + 1)
         right = LT(".".join(parts + ["0"] * (3 - len(parts))))
         return left, right
 

@@ -102,13 +102,23 @@ class Requirement(object):
             r.append("%s == %s" % (self.name, self._equal))
         else:
             if self._min_bound != MinVersion():
-                r.append("%s >= %s" % (self.name, self._min_bound))
+                if self._min_bound in self._not_equals:
+                    operator_string = ">"
+                else:
+                    operator_string = ">="
+                r.append("%s %s %s" % (self.name, operator_string, self._min_bound))
             if self._max_bound != MaxVersion():
-                r.append("%s <= %s" % (self.name, self._max_bound))
-            if self._min_bound == MinVersion() and self._max_bound == MaxVersion():
+                if self._max_bound in self._not_equals:
+                    operator_string = "<"
+                else:
+                    operator_string = "<="
+                r.append("%s %s %s" % (self.name, operator_string, self._max_bound))
+            if self._min_bound == MinVersion() and self._max_bound == MaxVersion() \
+                    and len(self._not_equals) == 0:
                 r.append("%s *" % self.name)
             for neq in self._not_equals:
-                r.append("%s != %s" % (self.name, neq))
+                if neq > self._min_bound and neq < self._max_bound:
+                    r.append("%s != %s" % (self.name, neq))
         return ", ".join(r)
 
     def __eq__(self, other):

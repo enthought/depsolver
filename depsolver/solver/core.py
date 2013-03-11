@@ -1,5 +1,3 @@
-import collections
-
 from depsolver.errors \
     import \
         DepSolverError
@@ -9,60 +7,15 @@ from depsolver.operations \
 from depsolver.solver.create_clauses \
     import \
         create_install_rules
+from depsolver.solver.decisions \
+    import \
+        DecisionsSet
 from depsolver.solver.policy \
     import \
         DefaultPolicy
 from depsolver.solver.rule \
     import \
-        Not, PackageLiteral
-
-class DecisionsSet(object):
-    def __init__(self, pool):
-        self._data = collections.OrderedDict()
-        self._pool = pool
-        self._decision_map = {}
-
-    def __contains__(self, value):
-        return value in self._data
-
-    def add_decision(self, literal, value, reason):
-        assert literal.name not in self._data
-        self._decision_map[literal.name] = reason
-        self._data[literal.name] = value
-
-    def evaluate_literal(self, literal):
-        return literal.evaluate(literal, self._data)
-
-    def items(self):
-        return iter(self._data.items())
-
-    def is_unit(self, clause):
-        return clause.is_unit(self._data)
-
-    def pop(self):
-        k, v = self._data.pop()
-        del self._decision_map[k]
-        return k, v
-
-    def satisfies_or_none(self, rule):
-        return rule.satisfies_or_none(self._data)
-
-    def __repr__(self):
-        strings = []
-        for pid, v in self._data.items():
-            reason = self._decision_map[pid]
-            strings.append("%s: %s (reason: %s)" % (self._pool.package_by_id(pid), v, reason))
-        return repr(strings)
-
-def infer_literal(variables, literal, reason):
-    """Set the literal corresponding variable to the value such as the literal
-    is True."""
-    if literal.name in variables:
-        raise DepSolverError("Internal error: inferring a literal already decided !")
-    if isinstance(literal, Not):
-        variables.add_decision(literal, False, reason)
-    else:
-        variables.add_decision(literal, True, reason)
+        PackageLiteral
 
 def run_unit_propagation(clauses, variables):
     """Run unit propagation, i.e. for each unit clause, infer the corresponding
@@ -72,7 +25,7 @@ def run_unit_propagation(clauses, variables):
     for clause in iterate_over:
         is_unit, can_be_infered = variables.is_unit(clause)
         if is_unit:
-            infer_literal(variables, can_be_infered, clause)
+            variables.infer(can_be_infered, clause)
             clauses = prune_satisfied_clauses(clauses, variables)
             if clauses is None:
                 raise DepSolverError("Bug in unit propagation ?")
@@ -113,7 +66,7 @@ def prune_pure_literals(clauses, variables):
         if len(clause.literals) == 1:
             literal = clause.literals[0]
             assert not literal.name in variables
-            infer_literal(variables, literal, clause)
+            variables.infer(literal, clause)
         else:
             new_clauses.append(clause)
 
@@ -134,7 +87,7 @@ def _run_dpll_iteration(clauses, variables):
 def decide_from_assertion_rules(clauses, variables):
     for clause in clauses:
         if clause.is_assertion:
-            infer_literal(variables, clause.get_literal(), clause)
+            variables.infer(clause.get_literal(), clause)
 
 class Solver(object):
     def __init__(self, pool, installed_repository, policy=None):
@@ -211,11 +164,11 @@ class Solver(object):
             # FIXME: consolidate string vs object for literals
             l_candidate = PackageLiteral(candidate, self.pool)
             assert not candidate in variables
-            variables.add_decision(l_candidate, True, clause)
+            variables.infer(l_candidate, clause)
             status, new_clauses = _run_dpll_iteration(clauses, variables)
             if status is False:
                 variables.pop()
-                variables.add_decision(l_candidate, False, clause)
+                variables.infer(~l_candidate, clause)
                 status, new_clauses = _run_dpll_iteration(clauses, variables)
                 if status is False:
                     # FIXME: refactor solver parts that needs backtracking (and

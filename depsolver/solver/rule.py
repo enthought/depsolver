@@ -92,7 +92,7 @@ class Rule(object):
 
     def get_literal(self):
         if self.is_assertion:
-            return six.next(iter(self.literals))
+            return six.advance_iterator(iter(self.literals))
         else:
             raise ValueError("Cannot get literal from non-assertion clause !")
 

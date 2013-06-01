@@ -72,11 +72,11 @@ def iter_over_requirement(tokens):
     """
     while True:
         block = []
-        token = six.next(tokens)
+        token = six.advance_iterator(tokens)
         try:
             while not isinstance(token, CommaToken):
                 block.append(token)
-                token = six.next(tokens)
+                token = six.advance_iterator(tokens)
             yield block
         except StopIteration as e:
             yield block

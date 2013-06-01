@@ -70,7 +70,7 @@ class DefaultPolicy(object):
                                       "and install not supported yet")
         else:
             try:
-                candidates = six.next(iter(package_queues.values()))
+                candidates = six.advance_iterator(iter(package_queues.values()))
             except StopIteration:
                 raise DepSolverError("No candidate in package_queues ?")
             return collections.deque(candidates)

@@ -255,3 +255,33 @@ class TestCreateInstallClauses(unittest.TestCase):
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, R("scipy"))))
+
+    def test_complex_scenario_2(self):
+        repository = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0,
+            mkl_numpy_1_6_1, mkl_numpy_1_7_0, nomkl_numpy_1_7_0, matplotlib_1_2_0])
+        pool = Pool()
+        pool.add_repository(repository)
+
+        installed_repository = Repository()
+        installed_repository.add_package(mkl_10_3_0)
+        installed_repository.add_package(mkl_numpy_1_7_0)
+        pool.add_repository(installed_repository)
+
+        R = PackageRule.from_string
+        r_rules = set()
+        r_rules.add(R("mkl_numpy-1.6.1 | mkl_numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
+        r_rules.add(R("-mkl_numpy-1.6.1 | -nomkl_numpy-1.7.0", pool))
+        r_rules.add(R("-mkl_numpy-1.7.0 | -nomkl_numpy-1.7.0", pool))
+        r_rules.add(R("-mkl_numpy-1.6.1 | -mkl_numpy-1.7.0", pool))
+        r_rules.add(R("-mkl_numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
+        r_rules.add(R("-mkl-10.1.0 | -mkl-11.0.0", pool))
+        r_rules.add(R("-mkl-10.2.0 | -mkl-11.0.0", pool))
+        r_rules.add(R("-mkl-10.3.0 | -mkl-11.0.0", pool))
+        r_rules.add(R("-mkl-10.1.0 | -mkl-10.2.0", pool))
+        r_rules.add(R("-mkl-10.1.0 | -mkl-10.3.0", pool))
+        r_rules.add(R("-mkl-10.2.0 | -mkl-10.3.0", pool))
+        r_rules.add(R("-mkl_numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0",
+                    pool))
+
+        self.assertEqual(r_rules,
+                set(create_install_rules(pool, Requirement.from_string("numpy"))))

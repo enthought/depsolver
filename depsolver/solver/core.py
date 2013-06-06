@@ -40,7 +40,7 @@ class DecisionsSet(object):
         return clause.is_unit(self._data)
 
     def pop(self):
-        k, v = self._data.pop()
+        k, v = self._data.popitem()
         del self._decision_map[k]
         return k, v
 

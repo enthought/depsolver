@@ -65,6 +65,21 @@ class TestRequirementParser(unittest.TestCase):
 
         self.assertEqual(repr(numpy_requirement), "numpy None")
 
+        requirement_string = "numpy > 1.3.0"
+        numpy_requirement = list(parser.parse(requirement_string))[0]
+
+        self.assertEqual(repr(numpy_requirement), "numpy > 1.3.0")
+
+        requirement_string = "numpy < 1.3.0"
+        numpy_requirement = list(parser.parse(requirement_string))[0]
+
+        self.assertEqual(repr(numpy_requirement), "numpy < 1.3.0")
+
+        requirement_string = "numpy != 1.3.0"
+        numpy_requirement = list(parser.parse(requirement_string))[0]
+
+        self.assertEqual(repr(numpy_requirement), "numpy != 1.3.0")
+
     def test_from_string(self):
         requirement_string = "numpy >= 1.3.0, numpy <= 2.0.0"
         parser = RequirementParser()
@@ -107,8 +122,34 @@ class TestRequirementParser(unittest.TestCase):
         self.assertTrue(numpy_requirement.matches(R("numpy >= 1.3.0")))
         self.assertTrue(numpy_requirement.matches(R("numpy <= 1.4.0")))
 
+    def test_match_strict(self):
+        R = Requirement.from_string
+
+        numpy_requirement = R("numpy > 1.3.0, numpy < 1.4.0")
+        self.assertTrue(numpy_requirement.matches(R("numpy == 1.3.5")))
+        self.assertFalse(numpy_requirement.matches(R("numpy == 1.3.0")))
+        self.assertFalse(numpy_requirement.matches(R("numpy == 1.4.0")))
+        self.assertTrue(numpy_requirement.matches(R("numpy >= 1.3.2, numpy <= 1.3.4")))
+        self.assertTrue(numpy_requirement.matches(R("numpy != 1.3.2")))
+
+    def test_composite(self):
+        R = Requirement.from_string
+
+        numpy_requirement = R("numpy >= 1.3.0, numpy <= 1.5.0, numpy <= 1.4.0")
+        r_numpy_requirement = R("numpy >= 1.3.0, numpy <= 1.4.0")
+        self.assertEqual(numpy_requirement, r_numpy_requirement)
+
     def test_matches_nomatch(self):
         R = Requirement.from_string
 
         numpy_requirement = R("numpy >= 1.3.0, numpy <= 1.2.0")
         self.assertFalse(numpy_requirement.matches(R("numpy")))
+
+    def test_matches_strict(self):
+        R = Requirement.from_string
+
+        numpy_requirement = R("numpy > 1.3.0, numpy < 1.4.0")
+        self.assertTrue(numpy_requirement.matches(R("numpy")))
+        self.assertTrue(numpy_requirement.matches(R("numpy == 1.3.5")))
+        self.assertFalse(numpy_requirement.matches(R("numpy == 1.3.0")))
+        self.assertFalse(numpy_requirement.matches(R("numpy == 1.4.0")))

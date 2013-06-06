@@ -14,3 +14,8 @@ class MissingPackageInPool(DepSolverError):
     def __init__(self, package_or_package_id):
         self.requested_package_or_id = package_or_package_id
         self.message = "This pool does not have any package %r" % package_or_package_id
+
+class UndefinedDecision(DepSolverError):
+    def __init__(self, package_id):
+        self.package_id = package_id
+        self.message = "Variable %s is undecided in this decision set" % self.package_id

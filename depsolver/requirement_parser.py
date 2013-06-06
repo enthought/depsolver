@@ -5,25 +5,25 @@ import six
 
 from depsolver.errors \
     import \
-        DepSolverError
+        DepSolverError, InvalidVersion
 from depsolver.constraints \
     import \
-        Any, Equal, GEQ, LEQ
+        Any, Equal, GEQ, GT, LEQ, LT, Not
 from depsolver.version \
     import \
-        Version
+        Version, _LOOSE_VERSION_RE
 
 V = Version.from_string
 
 _DEFAULT_SCANNER = re.Scanner([
     (r"[a-zA-Z_]\w*", lambda scanner, token: DistributionNameToken(token)),
-    (r"\d[\w\.\-\+]*", lambda scanner, token: VersionToken(token)),
+    (r"\d[\w\.\-\+\*]*", lambda scanner, token: VersionToken(token)),
     (r"==", lambda scanner, token: EqualToken(token)),
     (r">=", lambda scanner, token: GEQToken(token)),
-    #(r">", lambda scanner, token: ComparisonToken(token)),
+    (r">", lambda scanner, token: GTToken(token)),
     (r"<=", lambda scanner, token: LEQToken(token)),
-    #(r"<", lambda scanner, token: ComparisonToken(token)),
-    #(r"!=", lambda scanner, token: ComparisonToken(token)),
+    (r"<", lambda scanner, token: LTToken(token)),
+    (r"!=", lambda scanner, token: NotToken(token)),
     (",", lambda scanner, token: CommaToken(token)),
     (" +", lambda scanner, token: None),
 ])
@@ -55,11 +55,20 @@ class ComparisonToken(Token):
 class LEQToken(ComparisonToken):
     typ = "leq"
 
+class LTToken(ComparisonToken):
+    typ = "lt"
+
 class GEQToken(ComparisonToken):
     typ = "geq"
 
+class GTToken(ComparisonToken):
+    typ = "gt"
+
 class EqualToken(ComparisonToken):
     typ = "equal"
+
+class NotToken(ComparisonToken):
+    typ = "not"
 
 def iter_over_requirement(tokens):
     """Yield a single requirement 'block' (i.e. a sequence of tokens between
@@ -85,7 +94,10 @@ def iter_over_requirement(tokens):
 _OPERATOR_TO_SPEC = {
         EqualToken: Equal,
         GEQToken: GEQ,
+        GTToken: GT,
         LEQToken: LEQ,
+        LTToken: LT,
+        NotToken: Not,
 }
 
 def _spec_factory(comparison_token):
@@ -94,6 +106,39 @@ def _spec_factory(comparison_token):
         raise DepSolverError("Unsupported comparison token %s" % comparison_token)
     else:
         return klass
+
+def _is_glob_version(version_string):
+    return "*" in version_string
+
+def _glob_version_to_constraints(version_string):
+    # This won't win a beauty prize
+    n_stars = version_string.count("*")
+    if n_stars == 0 or n_stars > 1:
+        raise InvalidVersion("version string %r is not a valid glob version" % version_string)
+    else:
+        if "-" in version_string or "+" in version_string:
+            raise NotImplementedError("glob version witg dev/release parts not supported yet")
+
+        left_part = version_string[:version_string.index("*")]
+
+        if not _LOOSE_VERSION_RE.match(left_part + "0"):
+            raise InvalidVersion("version string %s is not a valid glob version" \
+                                 % version_string)
+        if not left_part.endswith("."):
+            raise InvalidVersion("version string %s is not a valid glob version" \
+                                 % version_string)
+
+        # discart the last dot
+        left_part = left_part[:-1]
+        parts = left_part.split(".")
+        if len(parts) < 1 or len(parts) > 3:
+            raise InvalidVersion("version string %s is not a valid glob version" \
+                                 % version_string)
+
+        left = GEQ(".".join(parts + ["0"] * (3 - len(parts))))
+        parts[-1] = str(int(parts[-1]) + 1)
+        right = LT(".".join(parts + ["0"] * (3 - len(parts))))
+        return left, right
 
 class RawRequirementParser(object):
     """A simple parser for requirement strings."""
@@ -109,11 +154,22 @@ class RawRequirementParser(object):
 
     def parse(self, requirement_string):
         parsed = collections.defaultdict(list)
+
+        def _parse_full_block(requirement_block):
+            distribution, operator, version = requirement_block
+            if _is_glob_version(version.value):
+                if not isinstance(operator, EqualToken):
+                    raise InvalidVersion("glob version %s can only be use with == operation" \
+                            % version.value)
+                else:
+                    parsed[distribution.value].extend(_glob_version_to_constraints(version.value))
+            else:
+                parsed[distribution.value].append(_spec_factory(operator)(version.value))
+
         tokens_stream = self.tokenize(requirement_string)
         for requirement_block in iter_over_requirement(tokens_stream):
             if len(requirement_block) == 3:
-                distribution, operator, version = requirement_block
-                parsed[distribution.value].append(_spec_factory(operator)(version.value))
+                _parse_full_block(requirement_block)
             elif len(requirement_block) == 1:
                 distribution = requirement_block[0]
                 parsed[distribution.value].append(Any())

@@ -20,28 +20,19 @@ class Repository(object):
     def __init__(self, packages=None):
         if packages is None:
             packages = []
-        self._package_name_to_ids = collections.defaultdict(list)
+        self._name_to_unique_names = collections.defaultdict(list)
         for package in packages:
-            self._package_name_to_ids[package.name].append(package.unique_name)
-        self._id_to_package = dict((p.unique_name, p) for p in packages)
+            self._name_to_unique_names[package.name].append(package.unique_name)
+        self._unique_name_to_name = dict((p.unique_name, p) for p in packages)
+        self._packages = packages
 
     def iter_packages(self):
-        """Return an iterator over every package contained in this repo.
-        
-        Note
-        ----
-        Order is undefined.
-        """
-        return self._id_to_package.values()
+        """Return an iterator over every package contained in this repo."""
+        return iter(self._packages)
 
     def list_packages(self):
-        """Return the list of every package contained in this repo.
-
-        Note
-        ----
-        Order is undefined.
-        """
-        return list(self.iter_packages())
+        """Return the list of every package contained in this repo."""
+        return list(self._packages)
 
     def add_package(self, package):
         """Add the given package to the repo.
@@ -51,8 +42,9 @@ class Repository(object):
         package: Package
             Package to look for.
         """
-        self._package_name_to_ids[package.name].append(package.unique_name)
-        self._id_to_package[package.unique_name] = package
+        self._packages.append(package)
+        self._name_to_unique_names[package.name].append(package.unique_name)
+        self._unique_name_to_name[package.unique_name] = package
 
     def has_package(self, package):
         """Returns True if the given package is present in the repo, False
@@ -92,7 +84,7 @@ class Repository(object):
             The package if found, None otherwise.
         """
         package = Package(name, Version.from_string(version))
-        return self._id_to_package.get(package.unique_name, None)
+        return self._unique_name_to_name.get(package.unique_name, None)
 
     def find_packages(self, name):
         """Returns a list of packages with the given name.
@@ -113,5 +105,5 @@ class Repository(object):
         Even if package A provides package B, find_packages(b_name) will not
         include A
         """
-        return [self._id_to_package[package_id] \
-                for package_id in self._package_name_to_ids[name]]
+        return [self._unique_name_to_name[package_id] \
+                for package_id in self._name_to_unique_names[name]]

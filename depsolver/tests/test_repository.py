@@ -34,6 +34,14 @@ class TestRepository(unittest.TestCase):
         self.assertTrue(repo.has_package_name("numpy"))
         self.assertFalse(repo.has_package_name("floupi") is None)
 
+    def test_find_package(self):
+        packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
+        repo = Repository(packages)
+
+        self.assertTrue(repo.find_package("numpy", "1.6.1"))
+        self.assertTrue(repo.find_package("numpy", "1.7.0"))
+        self.assertTrue(repo.find_package("numpy", "1.7.1") is None)
+
     def test_add_package(self):
         packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
 

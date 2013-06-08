@@ -37,4 +37,4 @@ class Request(object):
         self._add_job(requirement, "remove")
 
     def upgrade(self):
-        self._jobs.append(_Job([], "upgrade", None))
+        self.jobs.append(_Job([], "upgrade", None))

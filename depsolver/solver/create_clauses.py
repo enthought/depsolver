@@ -5,7 +5,7 @@ from depsolver.errors \
         MissingRequirementInPool
 from depsolver.solver.rule \
     import \
-        PackageLiteral, PackageNot, PackageRule
+        PackageInfoLiteral, PackageInfoNot, PackageInfoRule
 
 # FIXME: all that code below is a lot of crap
 def iter_conflict_rules(pool, packages):
@@ -16,8 +16,8 @@ def iter_conflict_rules(pool, packages):
     packages sequence (C_2^n / 2 = n(n-1)/2 for n packages)
     """
     for left, right in itertools.combinations(packages, 2):
-        yield PackageNot.from_package(left, pool) \
-              | PackageNot.from_package(right, pool)
+        yield PackageInfoNot.from_package(left, pool) \
+              | PackageInfoNot.from_package(right, pool)
 
 def create_depends_rule(pool, package, dependency_req):
     """Creates the rule encoding that package depends on the dependency
@@ -26,9 +26,9 @@ def create_depends_rule(pool, package, dependency_req):
     This dependency is of the form (-A | R1 | R2 | R3) where R* are the set of
     packages provided by the dependency requirement."""
     provided_dependencies = pool.what_provides(dependency_req, 'include_indirect')
-    rule = PackageNot.from_package(package, pool)
+    rule = PackageInfoNot.from_package(package, pool)
     for provided in provided_dependencies:
-       rule |= PackageLiteral.from_package(provided, pool)
+       rule |= PackageInfoLiteral.from_package(provided, pool)
     return rule
 
 def create_install_rules(pool, req):
@@ -60,6 +60,6 @@ def create_install_rules(pool, req):
             return clauses
 
     provided = pool.what_provides(req)
-    rule = PackageRule.from_packages(provided, pool)
+    rule = PackageInfoRule.from_packages(provided, pool)
     _append_rule(rule)
     return _add_dependency_rules(req)

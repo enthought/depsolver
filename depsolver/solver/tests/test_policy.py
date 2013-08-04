@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.pool \
     import \
         Pool
@@ -13,7 +13,7 @@ from depsolver.solver.policy \
     import \
         DefaultPolicy
 
-P = Package.from_string
+P = PackageInfo.from_string
 
 mkl_10_3_0 = P("mkl-10.3.0")
 mkl_11_0_0 = P("mkl-11.0.0")

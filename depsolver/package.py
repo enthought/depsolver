@@ -60,7 +60,7 @@ def parse_package_string(package_string, loose=False):
 
     return name, version, provides, dependencies
 
-class Package(object):
+class PackageInfo(object):
     @classmethod
     def from_loose_string(cls, package_string):
         name, version, provides, dependencies = parse_package_string(package_string, loose=True)
@@ -72,12 +72,12 @@ class Package(object):
 
         Example
         -------
-        >>> P = Package.from_string
-        >>> numpy_1_3_0 = Package("numpy", Version.from_string("1.3.0"))
+        >>> P = PackageInfo.from_string
+        >>> numpy_1_3_0 = PackageInfo("numpy", Version.from_string("1.3.0"))
         >>> P("numpy-1.3.0") == numpy_1_3_0
         True
         >>> P("numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)")
-        Package('numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
+        PackageInfo('numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
         """
         name, version, provides, dependencies = parse_package_string(package_string)
         return cls(name, version, provides, dependencies)
@@ -85,7 +85,7 @@ class Package(object):
     def __init__(self, name, version, provides=None, dependencies=None):
         """Create a new package instance.
 
-        PackageInfo instances contain exactly all the metadata needed for the
+        PackageInfoInfo instances contain exactly all the metadata needed for the
         dependency management.
 
         Parameters
@@ -115,7 +115,7 @@ class Package(object):
         else:
             self.dependencies = tuple(_sorted(set(dependencies)))
 
-        # FIXME: id detail should be implemented outside Package interface
+        # FIXME: id detail should be implemented outside PackageInfo interface
         self.id = hashlib.md5(self.unique_name.encode("ascii")).hexdigest()
 
     @property
@@ -132,7 +132,7 @@ class Package(object):
         return "; ".join(strings)
 
     def __repr__(self):
-        return "Package(%r)" % self.package_string
+        return "PackageInfo(%r)" % self.package_string
 
     def __str__(self):
         return self.unique_name

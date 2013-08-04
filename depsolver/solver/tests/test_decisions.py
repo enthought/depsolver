@@ -5,7 +5,7 @@ from depsolver.errors \
         UndefinedDecision
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.pool \
     import \
         Pool
@@ -17,9 +17,9 @@ from depsolver.solver.decisions \
         DecisionsSet
 from depsolver.solver.rule \
     import \
-        PackageLiteral
+        PackageInfoLiteral
 
-P = Package.from_string
+P = PackageInfo.from_string
 
 mkl_10_1_0 = P("mkl-10.1.0")
 mkl_10_2_0 = P("mkl-10.2.0")
@@ -31,9 +31,9 @@ class TestDecisionsSet(unittest.TestCase):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
         decisions = DecisionsSet(pool)
 
-        literal = PackageLiteral.from_string("mkl-11.0.0", pool)
-        not_literal = PackageLiteral.from_string("-mkl-11.0.0", pool)
-        another_literal = PackageLiteral.from_string("mkl-10.3.0", pool)
+        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
+        not_literal = PackageInfoLiteral.from_string("-mkl-11.0.0", pool)
+        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
 
         self.assertFalse(decisions.is_decided(literal))
         self.assertFalse(decisions.is_decided(not_literal))
@@ -48,9 +48,9 @@ class TestDecisionsSet(unittest.TestCase):
     def test_infer(self):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
 
-        literal = PackageLiteral.from_string("mkl-11.0.0", pool)
-        not_literal = PackageLiteral.from_string("-mkl-11.0.0", pool)
-        another_literal = PackageLiteral.from_string("mkl-10.3.0", pool)
+        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
+        not_literal = PackageInfoLiteral.from_string("-mkl-11.0.0", pool)
+        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
 
         decisions = DecisionsSet(pool)
         decisions.infer(literal, "dummy")
@@ -68,8 +68,8 @@ class TestDecisionsSet(unittest.TestCase):
     def test_decision_rule(self):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
 
-        literal = PackageLiteral.from_string("mkl-11.0.0", pool)
-        another_literal = PackageLiteral.from_string("mkl-10.3.0", pool)
+        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
+        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
 
         decisions = DecisionsSet(pool)
         decisions.infer(literal, "dummy")
@@ -80,8 +80,8 @@ class TestDecisionsSet(unittest.TestCase):
     def test_length(self):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
 
-        literal = PackageLiteral.from_string("mkl-11.0.0", pool)
-        another_literal = PackageLiteral.from_string("mkl-10.3.0", pool)
+        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
+        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
 
         decisions = DecisionsSet(pool)
 
@@ -94,8 +94,8 @@ class TestDecisionsSet(unittest.TestCase):
     def test_pop(self):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
 
-        literal = PackageLiteral.from_string("mkl-11.0.0", pool)
-        another_literal = PackageLiteral.from_string("mkl-10.3.0", pool)
+        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
+        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
 
         decisions = DecisionsSet(pool)
         decisions.infer(literal, "dummy")

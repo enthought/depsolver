@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.pool \
     import \
         Pool
@@ -22,12 +22,12 @@ from depsolver.version \
 V = Version.from_string
 R = Requirement.from_string
 
-mkl_10_3_0 = Package("mkl", V("10.3.0"))
-mkl_11_0_0 = Package("mkl", V("11.0.0"))
+mkl_10_3_0 = PackageInfo("mkl", V("10.3.0"))
+mkl_11_0_0 = PackageInfo("mkl", V("11.0.0"))
 
-numpy_1_7_0 = Package("numpy", V("1.7.0"), dependencies=[R("mkl >= 11.0.0")])
+numpy_1_7_0 = PackageInfo("numpy", V("1.7.0"), dependencies=[R("mkl >= 11.0.0")])
 
-scipy_0_12_0 = Package("scipy", V("0.12.0"), dependencies=[R("numpy >= 1.7.0")])
+scipy_0_12_0 = PackageInfo("scipy", V("0.12.0"), dependencies=[R("numpy >= 1.7.0")])
 
 class TestRequest(unittest.TestCase):
     def setUp(self):

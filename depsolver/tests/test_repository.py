@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.repository \
     import \
         Repository
@@ -10,10 +10,10 @@ from depsolver.version \
     import \
         Version
 
-numpy_1_6_1 = Package("numpy", Version.from_string("1.6.1"))
-numpy_1_7_0 = Package("numpy", Version.from_string("1.7.0"))
+numpy_1_6_1 = PackageInfo("numpy", Version.from_string("1.6.1"))
+numpy_1_7_0 = PackageInfo("numpy", Version.from_string("1.7.0"))
 
-scipy_0_11_0 = Package("scipy", Version.from_string("0.11.0"))
+scipy_0_11_0 = PackageInfo("scipy", Version.from_string("0.11.0"))
 
 class TestRepository(unittest.TestCase):
     def test_simple_construction(self):

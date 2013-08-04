@@ -4,10 +4,10 @@ import six
 
 from depsolver.errors \
     import \
-        MissingPackageInPool
+        MissingPackageInfoInPool
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.version \
     import \
         Version
@@ -186,7 +186,7 @@ class Rule(object):
         else:
             return False, None
 
-class PackageLiteral(Literal):
+class PackageInfoLiteral(Literal):
     """A Literal whose name is a package id attached to a pool."""
     @classmethod
     def from_string(cls, literal_string, pool):
@@ -196,20 +196,20 @@ class PackageLiteral(Literal):
         else:
             is_not = False
             name, version = literal_string.split("-")
-        package = Package(name, Version.from_string(version))
+        package = PackageInfo(name, Version.from_string(version))
         if not pool.has_package(package):
-            raise MissingPackageInPool(package)
+            raise MissingPackageInfoInPool(package)
         if is_not:
-            return PackageNot(package.id, pool)
+            return PackageInfoNot(package.id, pool)
         else:
-            return PackageLiteral(package.id, pool)
+            return PackageInfoLiteral(package.id, pool)
 
     @classmethod
     def from_package(cls, package, pool):
         return cls(package.id, pool)
 
     def __init__(self, name, pool):
-        super(PackageLiteral, self).__init__(name)
+        super(PackageInfoLiteral, self).__init__(name)
         self._pool = pool
 
     def __repr__(self):
@@ -219,14 +219,14 @@ class PackageLiteral(Literal):
         if not self._pool == other._pool:
             raise ValueError("Cannot or pakage literals which don't share the same pool.")
         else:
-            return PackageRule([self, other], self._pool)
+            return PackageInfoRule([self, other], self._pool)
 
-class PackageNot(PackageLiteral, Not):
+class PackageInfoNot(PackageInfoLiteral, Not):
     def __repr__(self):
         package = self._pool.package_by_id(self.name)
         return "-%s" % package
 
-class PackageRule(Rule):
+class PackageInfoRule(Rule):
     """A Rule where literals are package ids attached to a pool.
 
     It essentially allows for pretty-printing package names instead of internal
@@ -236,26 +236,26 @@ class PackageRule(Rule):
     def from_string(cls, packages_string, pool):
         literals = []
         for package_string in packages_string.split("|"):
-            literals.append(PackageLiteral.from_string(package_string.strip(), pool))
+            literals.append(PackageInfoLiteral.from_string(package_string.strip(), pool))
         return cls(literals, pool)
 
     @classmethod
     def from_packages(cls, packages, pool):
-        return cls((PackageLiteral.from_package(p, pool) for p in packages), pool)
+        return cls((PackageInfoLiteral.from_package(p, pool) for p in packages), pool)
 
     def __init__(self, literals, pool):
         self._pool = pool
-        super(PackageRule, self).__init__(literals)
+        super(PackageInfoRule, self).__init__(literals)
 
     def __or__(self, other):
-        if isinstance(other, PackageRule):
+        if isinstance(other, PackageInfoRule):
             literals = set(self.literals)
             literals.update(other.literals)
-            return PackageRule(literals, self._pool)
+            return PackageInfoRule(literals, self._pool)
         elif isinstance(other, Literal):
             literals = set([other])
             literals.update(self.literals)
-            return PackageRule(literals, self._pool)
+            return PackageInfoRule(literals, self._pool)
         else:
             raise TypeError("unsupported type %s" % type(other))
 

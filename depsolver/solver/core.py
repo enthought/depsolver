@@ -15,7 +15,7 @@ from depsolver.solver.policy \
         DefaultPolicy
 from depsolver.solver.rule \
     import \
-        PackageLiteral
+        PackageInfoLiteral
 
 def run_unit_propagation(clauses, variables):
     """Run unit propagation, i.e. for each unit clause, infer the corresponding
@@ -162,7 +162,7 @@ class Solver(object):
         while len(candidates) > 0:
             candidate = candidates.popleft()
             # FIXME: consolidate string vs object for literals
-            l_candidate = PackageLiteral(candidate, self.pool)
+            l_candidate = PackageInfoLiteral(candidate, self.pool)
             assert not candidate in variables
             variables.infer(l_candidate, clause)
             status, new_clauses = _run_dpll_iteration(clauses, variables)

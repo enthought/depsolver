@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.pool \
     import \
         Pool
@@ -18,9 +18,9 @@ from depsolver.solver.create_clauses \
         create_depends_rule, create_install_rules, iter_conflict_rules
 from depsolver.solver.rule \
     import \
-        PackageLiteral, PackageNot, PackageRule
+        PackageInfoLiteral, PackageInfoNot, PackageInfoRule
 
-P = Package.from_string
+P = PackageInfo.from_string
 R = Requirement.from_string
 
 mkl_10_1_0 = P("mkl-10.1.0")
@@ -44,7 +44,7 @@ scipy_0_12_0 = P("scipy-0.12.0; depends (numpy >= 1.4.0)")
 
 matplotlib_1_2_0 = P("matplotlib-1.2.0; depends (numpy >= 1.6.0)")
 
-class TestPackageRule(unittest.TestCase):
+class TestPackageInfoRule(unittest.TestCase):
     def setUp(self):
         repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0, numpy_1_6_0])
         pool = Pool()
@@ -53,35 +53,35 @@ class TestPackageRule(unittest.TestCase):
         self.pool = pool
 
     def test_or(self):
-        rule = PackageRule.from_packages([mkl_10_1_0, mkl_10_2_0], self.pool)
-        rule |= PackageNot.from_package(mkl_11_0_0, self.pool)
+        rule = PackageInfoRule.from_packages([mkl_10_1_0, mkl_10_2_0], self.pool)
+        rule |= PackageInfoNot.from_package(mkl_11_0_0, self.pool)
 
         self.assertTrue(rule.literals, set([mkl_11_0_0.id, mkl_10_1_0.id, mkl_10_2_0.id]))
 
     def test_repr(self):
-        rule_repr = repr(PackageRule.from_packages([mkl_11_0_0, mkl_10_1_0, mkl_10_2_0], self.pool))
+        rule_repr = repr(PackageInfoRule.from_packages([mkl_11_0_0, mkl_10_1_0, mkl_10_2_0], self.pool))
         self.assertEqual(rule_repr, "(+mkl-10.1.0 | +mkl-10.2.0 | +mkl-11.0.0)")
 
-        rule_repr = repr(PackageRule([PackageNot.from_package(mkl_10_2_0, self.pool)], self.pool) \
-                | PackageRule.from_packages([mkl_11_0_0], self.pool))
+        rule_repr = repr(PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool)], self.pool) \
+                | PackageInfoRule.from_packages([mkl_11_0_0], self.pool))
         self.assertEqual(rule_repr, "(-mkl-10.2.0 | +mkl-11.0.0)")
 
     def test_from_package_string(self):
-        rule = PackageRule.from_string("mkl-11.0.0", self.pool)
-        self.assertEqual(rule, PackageRule.from_packages([mkl_11_0_0], self.pool))
+        rule = PackageInfoRule.from_string("mkl-11.0.0", self.pool)
+        self.assertEqual(rule, PackageInfoRule.from_packages([mkl_11_0_0], self.pool))
 
-        rule = PackageRule.from_string("mkl-10.2.0 | mkl-11.0.0", self.pool)
-        self.assertEqual(rule, PackageRule.from_packages([mkl_10_2_0, mkl_11_0_0], self.pool))
+        rule = PackageInfoRule.from_string("mkl-10.2.0 | mkl-11.0.0", self.pool)
+        self.assertEqual(rule, PackageInfoRule.from_packages([mkl_10_2_0, mkl_11_0_0], self.pool))
 
-        rule = PackageRule.from_string("-mkl-10.2.0 | mkl-11.0.0", self.pool)
+        rule = PackageInfoRule.from_string("-mkl-10.2.0 | mkl-11.0.0", self.pool)
         self.assertEqual(rule,
-                PackageRule([PackageNot.from_package(mkl_10_2_0, self.pool),
-                             PackageLiteral.from_package(mkl_11_0_0, self.pool)], self.pool))
+                PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool),
+                             PackageInfoLiteral.from_package(mkl_11_0_0, self.pool)], self.pool))
 
-        rule = PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool)
+        rule = PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool)
         self.assertEqual(rule,
-                PackageRule([PackageNot.from_package(mkl_10_2_0, self.pool),
-                             PackageNot.from_package(mkl_11_0_0, self.pool)],
+                PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool),
+                             PackageInfoNot.from_package(mkl_11_0_0, self.pool)],
                             self.pool))
 
 class TestCreateClauses(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestCreateClauses(unittest.TestCase):
         self.pool = pool
 
     def test_create_depends_rule(self):
-        r_rule = PackageRule.from_string(
+        r_rule = PackageInfoRule.from_string(
                     "-numpy-1.6.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0",
                     self.pool)
         rule = create_depends_rule(self.pool, numpy_1_6_0, R("mkl"))
@@ -106,9 +106,9 @@ class TestCreateClauses(unittest.TestCase):
 
         # 3 packages conflicting with each other -> 3 rules (C_3^2)
         r_rules = set()
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
 
         self.assertEqual(r_rules,
                 set(iter_conflict_rules(self.pool, [mkl_10_1_0, mkl_10_2_0, mkl_10_3_0])))
@@ -124,14 +124,14 @@ class TestCreateInstallClauses(unittest.TestCase):
 
     def test_create_install_rules_simple(self):
         r_rules = set()
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string(
             "mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", self.pool))
 
         self.assertEqual(r_rules,
                 set(create_install_rules(self.pool, R("mkl"))))
@@ -143,15 +143,15 @@ class TestCreateInstallClauses(unittest.TestCase):
         pool.add_repository(repo)
 
         r_rules = set()
-        r_rules.add(PackageRule.from_string("numpy-1.7.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0", pool))
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, R("numpy"))))
@@ -164,18 +164,18 @@ class TestCreateInstallClauses(unittest.TestCase):
         pool.add_repository(repo)
 
         r_rules = set()
-        r_rules.add(PackageRule.from_string("numpy-1.7.0 | numpy-1.6.1", pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0 | numpy-1.6.1", pool))
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, R("numpy"))))
@@ -189,16 +189,16 @@ class TestCreateInstallClauses(unittest.TestCase):
         pool.add_repository(repo)
 
         r_rules = set()
-        r_rules.add(PackageRule.from_string("numpy-1.7.0", pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, R("numpy == 1.7.0"))))
@@ -213,10 +213,10 @@ class TestCreateInstallClauses(unittest.TestCase):
         pool.add_repository(repo)
 
         r_rules = set()
-        r_rules.add(PackageRule.from_string("scipy-0.11.0", pool))
-        r_rules.add(PackageRule.from_string("-scipy-0.11.0 | numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.7.0 | -nomkl_numpy-1.7.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("scipy-0.11.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-scipy-0.11.0 | numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -nomkl_numpy-1.7.0", pool))
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.7.0 | mkl-11.0.0", pool))
 
         self.assertEqual(r_rules,
@@ -229,29 +229,29 @@ class TestCreateInstallClauses(unittest.TestCase):
         pool.add_repository(repo)
 
         r_rules = set()
-        r_rules.add(PackageRule.from_string("scipy-0.11.0 | scipy-0.12.0", pool))
-        r_rules.add(PackageRule.from_string("-scipy-0.11.0 | -scipy-0.12.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("scipy-0.11.0 | scipy-0.12.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-scipy-0.11.0 | -scipy-0.12.0", pool))
+        r_rules.add(PackageInfoRule.from_string(
                     "-scipy-0.11.0 | numpy-1.6.0 | numpy-1.6.1 | numpy-1.7.0",
                     pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string(
                     "-scipy-0.12.0 | numpy-1.6.0 | numpy-1.6.1 | numpy-1.7.0",
                     pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.7.0 | -numpy-1.6.0", pool))
-        r_rules.add(PackageRule.from_string("-numpy-1.6.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-numpy-1.6.0 | -numpy-1.6.1", pool))
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string(
+        r_rules.add(PackageInfoRule.from_string(
             "-numpy-1.6.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
+        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, R("scipy"))))
@@ -267,7 +267,7 @@ class TestCreateInstallClauses(unittest.TestCase):
         installed_repository.add_package(mkl_numpy_1_7_0)
         pool.add_repository(installed_repository)
 
-        R = PackageRule.from_string
+        R = PackageInfoRule.from_string
         r_rules = set()
         r_rules.add(R("mkl_numpy-1.6.1 | mkl_numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
         r_rules.add(R("-mkl_numpy-1.6.1 | -nomkl_numpy-1.7.0", pool))

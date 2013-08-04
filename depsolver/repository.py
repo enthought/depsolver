@@ -2,7 +2,7 @@ import collections
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.version \
     import \
         Version
@@ -39,8 +39,8 @@ class Repository(object):
 
         Parameters
         ----------
-        package: Package
-            Package to look for.
+        package: PackageInfo
+            PackageInfo to look for.
         """
         self._packages.append(package)
         self._name_to_unique_names[package.name].append(package.unique_name)
@@ -52,8 +52,8 @@ class Repository(object):
         
         Parameters
         ----------
-        package: Package
-            Package to look for.
+        package: PackageInfo
+            PackageInfo to look for.
         """
         return self.find_package(package.name, str(package.version)) is not None
 
@@ -64,7 +64,7 @@ class Repository(object):
         Parameters
         ----------
         name: str
-            Package name to look for.
+            PackageInfo name to look for.
         """
         return len(self.find_packages(name)) > 0
 
@@ -80,10 +80,10 @@ class Repository(object):
 
         Returns
         -------
-        package: Package or None
+        package: PackageInfo or None
             The package if found, None otherwise.
         """
-        package = Package(name, Version.from_string(version))
+        package = PackageInfo(name, Version.from_string(version))
         return self._unique_name_to_name.get(package.unique_name, None)
 
     def find_packages(self, name):

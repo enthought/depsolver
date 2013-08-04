@@ -2,11 +2,11 @@ import unittest
 
 from depsolver.errors \
     import \
-        MissingPackageInPool
+        MissingPackageInfoInPool
 
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.pool \
     import \
         MATCH, MATCH_NAME, MATCH_PROVIDE, Pool
@@ -23,16 +23,16 @@ from depsolver.version \
 V = Version.from_string
 R = Requirement.from_string
 
-mkl_10_1_0 = Package("mkl", V("10.1.0"))
-mkl_10_2_0 = Package("mkl", V("10.2.0"))
-mkl_10_3_0 = Package("mkl", V("10.3.0"))
-mkl_11_0_0 = Package("mkl", V("11.0.0"))
+mkl_10_1_0 = PackageInfo("mkl", V("10.1.0"))
+mkl_10_2_0 = PackageInfo("mkl", V("10.2.0"))
+mkl_10_3_0 = PackageInfo("mkl", V("10.3.0"))
+mkl_11_0_0 = PackageInfo("mkl", V("11.0.0"))
 
-numpy_1_6_0 = Package("numpy", V("1.6.0"), dependencies=[R("mkl")])
-numpy_1_6_1 = Package("numpy", V("1.6.1"), dependencies=[R("mkl")])
-numpy_1_7_0 = Package("numpy", V("1.7.0"), dependencies=[R("mkl >= 11.0.0")])
+numpy_1_6_0 = PackageInfo("numpy", V("1.6.0"), dependencies=[R("mkl")])
+numpy_1_6_1 = PackageInfo("numpy", V("1.6.1"), dependencies=[R("mkl")])
+numpy_1_7_0 = PackageInfo("numpy", V("1.7.0"), dependencies=[R("mkl >= 11.0.0")])
 
-nomkl_numpy_1_7_0 = Package("nomkl_numpy", V("1.7.0"), provides=[R("numpy == 1.7.0")])
+nomkl_numpy_1_7_0 = PackageInfo("nomkl_numpy", V("1.7.0"), provides=[R("numpy == 1.7.0")])
 
 class TestPool(unittest.TestCase):
     def test_simple(self):
@@ -42,7 +42,7 @@ class TestPool(unittest.TestCase):
 
         self.assertEqual(mkl_10_1_0, pool.package_by_id(mkl_10_1_0.id))
         self.assertEqual(mkl_10_2_0, pool.package_by_id(mkl_10_2_0.id))
-        self.assertRaises(MissingPackageInPool, lambda: pool.package_by_id(mkl_10_3_0.id))
+        self.assertRaises(MissingPackageInfoInPool, lambda: pool.package_by_id(mkl_10_3_0.id))
 
     def test_simple2(self):
         repo = Repository([mkl_10_1_0, mkl_10_2_0])
@@ -50,7 +50,7 @@ class TestPool(unittest.TestCase):
 
         self.assertEqual(mkl_10_1_0, pool.package_by_id(mkl_10_1_0.id))
         self.assertEqual(mkl_10_2_0, pool.package_by_id(mkl_10_2_0.id))
-        self.assertRaises(MissingPackageInPool, lambda: pool.package_by_id(mkl_10_3_0.id))
+        self.assertRaises(MissingPackageInfoInPool, lambda: pool.package_by_id(mkl_10_3_0.id))
 
     def test_has_package(self):
         pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0])])

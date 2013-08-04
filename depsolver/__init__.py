@@ -1,6 +1,6 @@
 from depsolver.package \
     import\
-        Package
+        PackageInfo
 from depsolver.pool \
     import\
         Pool

@@ -2,7 +2,7 @@ import collections
 
 from depsolver.errors \
     import \
-        MissingPackageInPool
+        MissingPackageInfoInPool
 from depsolver.requirement \
     import \
         Requirement
@@ -57,7 +57,7 @@ class Pool(object):
         try:
             return self._id_to_package[package_id]
         except KeyError:
-            raise MissingPackageInPool(package_id)
+            raise MissingPackageInfoInPool(package_id)
 
     def what_provides(self, requirement, mode='composer'):
         """Returns a list of packages that provide the given requirement.
@@ -119,7 +119,7 @@ class Pool(object):
 
         Arguments
         ---------
-        candidate: Package
+        candidate: PackageInfo
             Candidate package
         requirement: Requirement
             The requirement to match
@@ -136,10 +136,10 @@ class Pool(object):
 
         Examples
         --------
-        >>> from depsolver import Package, Requirement
+        >>> from depsolver import PackageInfo, Requirement
         >>> R = Requirement.from_string
         >>> pool = Pool()
-        >>> pool.matches(Package.from_string('numpy-1.3.0'), R('numpy >= 1.2.0')) == MATCH
+        >>> pool.matches(PackageInfo.from_string('numpy-1.3.0'), R('numpy >= 1.2.0')) == MATCH
         True
         """
         if requirement.name == candidate.name:

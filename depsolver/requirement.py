@@ -20,7 +20,7 @@ class Requirement(object):
     Arguments
     ---------
     name: str
-        Package name
+        PackageInfo name
     specs: seq
         Sequence of constraints
     """

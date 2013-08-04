@@ -45,8 +45,8 @@ def parse_package_string(package_string, loose=False):
 
     name, version = _parse_name_version_part(parts[0], loose)
 
-    dependencies = None
-    provides = None
+    dependencies = set()
+    provides = set()
 
     if len(parts) > 1:
         for part in parts[1:]:

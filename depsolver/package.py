@@ -7,6 +7,9 @@ from depsolver.requirement \
 from depsolver.version \
     import \
         Version
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Instance, List, Long, Unicode
 
 R = Requirement.from_string
 V = Version.from_string
@@ -60,11 +63,29 @@ def parse_package_string(package_string, loose=False):
 
     return name, version, provides, dependencies
 
-class PackageInfo(object):
-    @classmethod
-    def from_loose_string(cls, package_string):
-        name, version, provides, dependencies = parse_package_string(package_string, loose=True)
-        return cls(name, version, provides, dependencies)
+class PackageInfo(HasTraits):
+    """
+    PackageInfoInfo instances contain exactly all the metadata needed for the
+    dependency management.
+
+    Parameters
+    ----------
+    name: str
+        Name of the package (i.e. distribution name)
+    version: object
+        Instance of Version
+    provides: None or sequence
+        Sequence of Requirements.
+    dependencies: None or sequence
+        Sequence of Requirements.
+    """
+    name = Unicode()
+    version = Instance(Version)
+
+    dependencies = List(Instance(Requirement))
+    provides = List(Instance(Requirement))
+
+    id = Long(-1)
 
     @classmethod
     def from_string(cls, package_string):
@@ -80,43 +101,8 @@ class PackageInfo(object):
         PackageInfo('numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
         """
         name, version, provides, dependencies = parse_package_string(package_string)
-        return cls(name, version, provides, dependencies)
-
-    def __init__(self, name, version, provides=None, dependencies=None):
-        """Create a new package instance.
-
-        PackageInfoInfo instances contain exactly all the metadata needed for the
-        dependency management.
-
-        Parameters
-        ----------
-        name: str
-            Name of the package (i.e. distribution name)
-        version: object
-            Instance of Version
-        provides: None or sequence
-            Sequence of Requirements.
-        dependencies: None or sequence
-            Sequence of Requirements.
-        """
-        self.name = name
-        self.version = version
-
-        def _sorted(requirements):
-            return sorted(requirements, key=lambda req: repr(req))
-
-        if provides is None:
-            self.provides = ()
-        else:
-            self.provides = tuple(_sorted(set(provides)))
-
-        if dependencies is None:
-            self.dependencies = ()
-        else:
-            self.dependencies = tuple(_sorted(set(dependencies)))
-
-        # FIXME: id detail should be implemented outside PackageInfo interface
-        self.id = hashlib.md5(self.unique_name.encode("ascii")).hexdigest()
+        return cls(name=name, version=version, provides=list(provides),
+                   dependencies=list(dependencies))
 
     @property
     def unique_name(self):
@@ -141,6 +127,3 @@ class PackageInfo(object):
         return self.name == other.name and self.version == other.version \
                 and self.provides == other.provides \
                 and self.dependencies == other.dependencies
-
-    def __hash__(self):
-        return hash(repr(self))

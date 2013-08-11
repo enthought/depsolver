@@ -10,10 +10,13 @@ from depsolver.version \
     import \
         Version
 
-numpy_1_6_1 = PackageInfo("numpy", Version.from_string("1.6.1"))
-numpy_1_7_0 = PackageInfo("numpy", Version.from_string("1.7.0"))
+P = PackageInfo.from_string
+V = Version.from_string
 
-scipy_0_11_0 = PackageInfo("scipy", Version.from_string("0.11.0"))
+numpy_1_6_1 = P("numpy-1.6.1")
+numpy_1_7_0 = P("numpy-1.7.0")
+
+scipy_0_11_0 = P("scipy-0.11.0")
 
 class TestRepository(unittest.TestCase):
     def test_simple_construction(self):
@@ -22,29 +25,26 @@ class TestRepository(unittest.TestCase):
 
         r_packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
 
-        repo = Repository(r_packages)
+        repo = Repository(packages=r_packages)
         packages = set(repo.iter_packages())
         self.assertEqual(packages, set(r_packages))
 
-    @unittest.expectedFailure
     def test_has_package(self):
         packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
-        repo = Repository(packages)
+        repo = Repository(packages=packages)
 
         self.assertTrue(repo.has_package(numpy_1_6_1))
         self.assertTrue(repo.has_package_name("numpy"))
-        self.assertFalse(repo.has_package_name("floupi") is None)
+        self.assertFalse(repo.has_package_name("floupi"))
 
-    @unittest.expectedFailure
     def test_find_package(self):
         packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
-        repo = Repository(packages)
+        repo = Repository(packages=packages)
 
-        self.assertTrue(repo.find_package("numpy", "1.6.1"))
-        self.assertTrue(repo.find_package("numpy", "1.7.0"))
-        self.assertTrue(repo.find_package("numpy", "1.7.1") is None)
+        self.assertTrue(repo.find_package("numpy", V("1.6.1")))
+        self.assertTrue(repo.find_package("numpy", V("1.7.0")))
+        self.assertTrue(repo.find_package("numpy", V("1.7.1")) is None)
 
-    @unittest.expectedFailure
     def test_add_package(self):
         packages = [numpy_1_6_1, numpy_1_7_0, scipy_0_11_0]
 
@@ -54,3 +54,5 @@ class TestRepository(unittest.TestCase):
 
         self.assertTrue(repo.has_package(numpy_1_6_1))
         self.assertTrue(repo.has_package_name("numpy"))
+        for package in repo.packages:
+            self.assertTrue(package.repository is repo)

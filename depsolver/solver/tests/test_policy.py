@@ -34,6 +34,7 @@ class TestDefaultPolicy(unittest.TestCase):
         candidates = policy.prefered_package_ids(pool, {}, r_candidates)
         self.assertEqual(list(candidates), [mkl_11_0_0.id])
 
+    @unittest.expectedFailure
     def test_simple_fulfilled_installed(self):
         """Ensure the policy returns the installed version first if it fulfills
         the requirement, even if higher versions are available."""

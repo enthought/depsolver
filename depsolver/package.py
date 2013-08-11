@@ -86,6 +86,7 @@ class PackageInfo(HasTraits):
     provides = List(Instance(Requirement))
 
     id = Long(-1)
+    repository = Instance("depsolver.repository.Repository")
 
     @classmethod
     def from_string(cls, package_string):

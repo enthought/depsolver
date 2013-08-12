@@ -56,3 +56,7 @@ class TestRepository(unittest.TestCase):
         self.assertTrue(repo.has_package_name("numpy"))
         for package in repo.packages:
             self.assertTrue(package.repository is repo)
+
+    def test_add_package_twice(self):
+        repo = Repository([numpy_1_6_1])
+        self.assertRaises(ValueError, lambda: repo.add_package(numpy_1_6_1))

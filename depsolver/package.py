@@ -86,7 +86,8 @@ class PackageInfo(HasTraits):
     provides = List(Instance(Requirement))
 
     id = Long(-1)
-    repository = Instance("depsolver.repository.Repository")
+
+    _repository = Instance("depsolver.repository.Repository")
 
     @classmethod
     def from_string(cls, package_string):
@@ -117,6 +118,17 @@ class PackageInfo(HasTraits):
         if self.provides:
             strings.append("provides (%s)" % ", ".join(str(s) for s in self.provides))
         return "; ".join(strings)
+
+    @property
+    def repository(self):
+        return self._repository
+
+    @repository.setter
+    def repository(self, repository):
+        if self._repository is not None:
+            raise ValueError("Repository for this package is already set to %s!" % \
+                             format(self._repository))
+        self._repository = repository
 
     def __repr__(self):
         return "PackageInfo(%r)" % self.package_string

@@ -6,6 +6,9 @@ import six
 from depsolver.package \
     import \
         PackageInfo
+from depsolver.repository \
+    import \
+        Repository
 from depsolver.requirement \
     import \
         Requirement
@@ -47,6 +50,14 @@ class TestPackageInfo(unittest.TestCase):
 
         package = PackageInfo(name="numpy", version=V("1.6.0"), dependencies=[R("mkl >= 10.3.0")])
         self.assertEqual(repr(package), "PackageInfo(u'numpy-1.6.0; depends (mkl >= 10.3.0)')")
+
+    def test_set_repository(self):
+        package = PackageInfo(name="numpy", version=V("1.3.0"))
+        package.repository = Repository()
+
+        def set_repository():
+            package.repository = Repository()
+        self.assertRaises(ValueError, set_repository)
 
 class TestPackageInfoFromString(unittest.TestCase):
     def test_simple(self):

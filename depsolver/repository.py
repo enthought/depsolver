@@ -20,6 +20,11 @@ class Repository(HasTraits):
     """
     packages = List(Instance(PackageInfo))
 
+    def __init__(self, packages=None, **kw):
+        super(Repository, self).__init__(**kw)
+        for p in packages or []:
+            self.add_package(p)
+
     def iter_packages(self):
         """Return an iterator over every package contained in this repo."""
         return iter(self.packages)

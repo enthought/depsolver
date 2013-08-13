@@ -23,23 +23,22 @@ P = PackageInfo.from_string
 V = Version.from_string
 R = Requirement.from_string
 
-mkl_10_3_0 = P("mkl-10.3.0")
-mkl_11_0_0 = P("mkl-11.0.0")
-
-numpy_1_7_0 = P("numpy-1.7.0; depends (mkl >= 11.0.0)")
-
-scipy_0_12_0 = P("scipy-0.12.0; depends (numpy >= 1.7.0)")
-
 class TestRequest(unittest.TestCase):
     def setUp(self):
-        repo = Repository([mkl_10_3_0, mkl_11_0_0, numpy_1_7_0, scipy_0_12_0])
+        self.mkl_10_3_0 = P("mkl-10.3.0")
+        self.mkl_11_0_0 = P("mkl-11.0.0")
+
+        self.numpy_1_7_0 = P("numpy-1.7.0; depends (mkl >= 11.0.0)")
+
+        self.scipy_0_12_0 = P("scipy-0.12.0; depends (numpy >= 1.7.0)")
+
+        repo = Repository([self.mkl_10_3_0, self.mkl_11_0_0, self.numpy_1_7_0, self.scipy_0_12_0])
         self.pool = Pool([repo])
 
-    @unittest.expectedFailure
     def test_simple_install(self):
         r_jobs = [
-            _Job([scipy_0_12_0], "install", R("scipy")),
-            _Job([numpy_1_7_0], "install", R("numpy")),
+            _Job([self.scipy_0_12_0], "install", R("scipy")),
+            _Job([self.numpy_1_7_0], "install", R("numpy")),
         ]
 
         request = Request(self.pool)
@@ -48,10 +47,9 @@ class TestRequest(unittest.TestCase):
 
         self.assertEqual(request.jobs, r_jobs)
 
-    @unittest.expectedFailure
     def test_simple_update(self):
         r_jobs = [
-            _Job([numpy_1_7_0], "update", R("numpy")),
+            _Job([self.numpy_1_7_0], "update", R("numpy")),
         ]
 
         request = Request(self.pool)
@@ -59,10 +57,9 @@ class TestRequest(unittest.TestCase):
 
         self.assertEqual(request.jobs, r_jobs)
 
-    @unittest.expectedFailure
     def test_simple_remove(self):
         r_jobs = [
-            _Job([numpy_1_7_0], "remove", R("numpy")),
+            _Job([self.numpy_1_7_0], "remove", R("numpy")),
         ]
 
         request = Request(self.pool)

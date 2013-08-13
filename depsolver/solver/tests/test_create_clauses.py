@@ -23,30 +23,31 @@ from depsolver.solver.rule \
 P = PackageInfo.from_string
 R = Requirement.from_string
 
-mkl_10_1_0 = P("mkl-10.1.0")
-mkl_10_2_0 = P("mkl-10.2.0")
-mkl_10_3_0 = P("mkl-10.3.0")
-mkl_11_0_0 = P("mkl-11.0.0")
-
-numpy_1_6_0 = P("numpy-1.6.0; depends (mkl)")
-numpy_1_6_1 = P("numpy-1.6.1; depends (mkl)")
-numpy_1_7_0 = P("numpy-1.7.0; depends (mkl)")
-
-nomkl_numpy_1_6_0 = P("nomkl_numpy-1.6.0; provides(numpy == 1.6.0)")
-nomkl_numpy_1_6_1 = P("nomkl_numpy-1.6.1; provides(numpy == 1.6.1)")
-nomkl_numpy_1_7_0 = P("nomkl_numpy-1.7.0; provides(numpy == 1.7.0)")
-
-mkl_numpy_1_6_1 = P("mkl_numpy-1.6.1; provides(numpy == 1.6.1); depends (mkl)")
-mkl_numpy_1_7_0 = P("mkl_numpy-1.7.0; provides(numpy == 1.7.0); depends (mkl)")
-
-scipy_0_11_0 = P("scipy-0.11.0; depends (numpy >= 1.4.0)")
-scipy_0_12_0 = P("scipy-0.12.0; depends (numpy >= 1.4.0)")
-
-matplotlib_1_2_0 = P("matplotlib-1.2.0; depends (numpy >= 1.6.0)")
-
 class TestPackageInfoRule(unittest.TestCase):
     def setUp(self):
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0, numpy_1_6_0])
+        self.mkl_10_1_0 = P("mkl-10.1.0")
+        self.mkl_10_2_0 = P("mkl-10.2.0")
+        self.mkl_10_3_0 = P("mkl-10.3.0")
+        self.mkl_11_0_0 = P("mkl-11.0.0")
+
+        self.numpy_1_6_0 = P("numpy-1.6.0; depends (mkl)")
+        self.numpy_1_6_1 = P("numpy-1.6.1; depends (mkl)")
+        self.numpy_1_7_0 = P("numpy-1.7.0; depends (mkl)")
+
+        self.nomkl_numpy_1_6_0 = P("nomkl_numpy-1.6.0; provides(numpy == 1.6.0)")
+        self.nomkl_numpy_1_6_1 = P("nomkl_numpy-1.6.1; provides(numpy == 1.6.1)")
+        self.nomkl_numpy_1_7_0 = P("nomkl_numpy-1.7.0; provides(numpy == 1.7.0)")
+
+        self.mkl_numpy_1_6_1 = P("mkl_numpy-1.6.1; provides(numpy == 1.6.1); depends (mkl)")
+        self.mkl_numpy_1_7_0 = P("mkl_numpy-1.7.0; provides(numpy == 1.7.0); depends (mkl)")
+
+        self.scipy_0_11_0 = P("scipy-0.11.0; depends (numpy >= 1.4.0)")
+        self.scipy_0_12_0 = P("scipy-0.12.0; depends (numpy >= 1.4.0)")
+
+        self.matplotlib_1_2_0 = P("matplotlib-1.2.0; depends (numpy >= 1.6.0)")
+
+        repo = Repository([self.mkl_10_1_0, self.mkl_10_2_0, self.mkl_10_3_0,
+                           self.mkl_11_0_0, self.numpy_1_6_0])
         pool = Pool()
         pool.add_repository(repo)
 
@@ -89,7 +90,15 @@ class TestPackageInfoRule(unittest.TestCase):
 
 class TestCreateClauses(unittest.TestCase):
     def setUp(self):
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0, numpy_1_6_0])
+        self.mkl_10_1_0 = P("mkl-10.1.0")
+        self.mkl_10_2_0 = P("mkl-10.2.0")
+        self.mkl_10_3_0 = P("mkl-10.3.0")
+        self.mkl_11_0_0 = P("mkl-11.0.0")
+
+        self.numpy_1_6_0 = P("numpy-1.6.0; depends (mkl)")
+
+        repo = Repository([self.mkl_10_1_0, self.mkl_10_2_0, self.mkl_10_3_0,
+            self.mkl_11_0_0, self.numpy_1_6_0])
         pool = Pool()
         pool.add_repository(repo)
 
@@ -120,8 +129,21 @@ class TestCreateClauses(unittest.TestCase):
 
 class TestCreateInstallClauses(unittest.TestCase):
     def setUp(self):
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0, numpy_1_6_0,
-            numpy_1_6_0, numpy_1_6_1, numpy_1_7_0])
+        self.mkl_10_1_0 = P("mkl-10.1.0")
+        self.mkl_10_2_0 = P("mkl-10.2.0")
+        self.mkl_10_3_0 = P("mkl-10.3.0")
+        self.mkl_11_0_0 = P("mkl-11.0.0")
+
+        self.numpy_1_6_0 = P("numpy-1.6.0; depends (mkl)")
+        self.numpy_1_6_1 = P("numpy-1.6.1; depends (mkl)")
+        self.numpy_1_7_0 = P("numpy-1.7.0; depends (mkl)")
+
+        self.mkl_numpy_1_6_0 = P("mkl_numpy-1.6.0; depends (mkl); provides (numpy == 1.6.0)")
+        self.mkl_numpy_1_6_1 = P("mkl_numpy-1.6.1; depends (mkl); provides (numpy == 1.6.1)")
+        self.mkl_numpy_1_7_0 = P("mkl_numpy-1.7.0; depends (mkl); provides (numpy == 1.7.0)")
+
+        repo = Repository([self.mkl_10_1_0, self.mkl_10_2_0, self.mkl_10_3_0,
+            self.mkl_11_0_0, self.numpy_1_6_0, self.numpy_1_6_1, self.numpy_1_7_0])
         pool = Pool()
         pool.add_repository(repo)
 

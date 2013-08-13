@@ -1,8 +1,17 @@
 import collections
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Dict, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
         MissingPackageInfoInPool
+from depsolver.package \
+    import \
+        PackageInfo
+from depsolver.repository \
+    import \
+        Repository
 from depsolver.requirement \
     import \
         Requirement
@@ -11,25 +20,34 @@ MATCH_NAME = 1
 MATCH = 2
 MATCH_PROVIDE = 3
 
-class Pool(object):
+class Pool(HasTraits):
     """Pool objects model a pool of repositories.
 
     Pools are able to find packages that provide a given requirements (handling
     the provides concept from package metadata).
     """
-    def __init__(self, repositories=None):
-        self._id_to_package = {}
+    repositories = List(Instance(Repository))
 
-        # provide.name -> package.id mapping
-        self._provide_name_to_ids = collections.defaultdict(set)
+    _packages_by_id = Dict()
+    _packages_by_name = Dict()
 
-        if repositories:
+    _id = Long(1)
+
+    def __init__(self, repositories=None, **kw):
+        super(Pool, self).__init__(self, **kw)
+        if repositories is None:
+            repositories = []
+
+        # provide.name -> package mapping
+        self._packages_by_name = collections.defaultdict(list)
+
+        if len(repositories) > 0:
             for repository in repositories:
                 self.add_repository(repository)
 
     def has_package(self, package):
         package_id = package.id
-        return package_id in self._id_to_package
+        return package_id in self._packages_by_id
 
     def add_repository(self, repository):
         """Add a repository to this pool.
@@ -37,14 +55,18 @@ class Pool(object):
         Arguments
         ---------
         repository: Repository
-            repository
+            repository to add
         """
-        for package in repository.iter_packages():
-            self._id_to_package[package.id] = package
+        self.repositories.append(repository)
 
-            self._provide_name_to_ids[package.name].add(package.id)
+        for package in repository.iter_packages():
+            package.id = self._id
+            self._id += 1
+            self._packages_by_id[package.id] = package
+
+            self._packages_by_name[package.name].append(package)
             for provide in package.provides:
-                self._provide_name_to_ids[provide.name].add(package.id)
+                self._packages_by_name[provide.name].append(package)
 
     def package_by_id(self, package_id):
         """Retrieve a package from its id.
@@ -55,7 +77,7 @@ class Pool(object):
             A package id
         """
         try:
-            return self._id_to_package[package_id]
+            return self._packages_by_id[package_id]
         except KeyError:
             raise MissingPackageInfoInPool(package_id)
 
@@ -91,8 +113,7 @@ class Pool(object):
         strict_matches = []
         provided_match = []
 
-        for candidate_id in self._provide_name_to_ids[requirement.name]:
-            package = self._id_to_package[candidate_id]
+        for package in self._packages_by_name[requirement.name]:
             match = self.matches(package, requirement)
             if match == MATCH_NAME:
                 any_matches.append(package)
@@ -100,6 +121,8 @@ class Pool(object):
                 strict_matches.append(package)
             elif match == MATCH_PROVIDE:
                 provided_match.append(package)
+            else:
+                raise ValueError("Invalid match type: {}".format(match))
 
         if mode == 'composer':
             if len(any_matches) > 0 or len(strict_matches) > 0:

@@ -97,7 +97,7 @@ class PackageInfo(HasTraits):
         -------
         >>> P = PackageInfo.from_string
         >>> P("numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)")
-        PackageInfo(u'numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
+        PackageInfo(u'numpy-1.3.0; depends (mkl >= 10.3.0, mkl <= 10.4.0)')
         >>> numpy_1_3_0 = PackageInfo("numpy", Version.from_string("1.3.0"))
         >>> P("numpy-1.3.0") == numpy_1_3_0
         True

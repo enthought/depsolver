@@ -267,17 +267,20 @@ class PackageRule(HasTraits):
 
     enabled = Bool(True)
 
+    id = Long(-1)
+
     _rule_hash = Unicode("")
 
     @classmethod
-    def from_packages(cls, pool, packages, reason, reason_details="", job=None):
+    def from_packages(cls, pool, packages, reason, reason_details="", job=None, id=-1):
         literals = [p.id for p in packages]
-        return cls(pool, literals, reason, reason_details, job)
+        return cls(pool, literals, reason, reason_details, job, id)
 
-    def __init__(self, pool, literals, reason, reason_details="", job=None, **kw):
+    def __init__(self, pool, literals, reason, reason_details="", job=None, id=-1, **kw):
         literals = sorted(literals)
         super(PackageRule, self).__init__(pool=pool, literals=literals,
-                reason=reason, reason_details=reason_details, job=job, **kw)
+                reason=reason, reason_details=reason_details, job=job, id=id,
+                **kw)
 
     @property
     def rule_hash(self):

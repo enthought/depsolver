@@ -1,8 +1,17 @@
 import itertools
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Dict, Enum, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
         MissingRequirementInPool
+from depsolver.solver.policy \
+    import \
+        DefaultPolicy
+from depsolver.pool \
+    import \
+        Pool
 from depsolver.solver.rule \
     import \
         PackageInfoLiteral, PackageInfoNot, PackageRule
@@ -63,3 +72,42 @@ def create_install_rules(pool, req):
     rule = PackageRule.from_packages(provided, pool)
     _append_rule(rule)
     return _add_dependency_rules(req)
+
+class RulesSet(HasTraits):
+    """
+    Simple container of rules
+    """
+    unknown_rules = List(Instance(PackageRule))
+    package_rules = List(Instance(PackageRule))
+    job_rules = List(Instance(PackageRule))
+    learnt_rules = List(Instance(PackageRule))
+
+    rule_types = Enum(["unknown", "packages", "job", "learnt"])
+
+    rules_by_hash = Dict()
+    rules_by_id = List(Instance(PackageRule))
+
+    def __init__(self, **kw):
+        super(RulesSet, self).__init__(**kw)
+
+    def __len__(self):
+        return len(self.rules_by_id)
+
+    def add_rule(self, rule, rule_type):
+        if rule_type == "unknown":
+            self.unknown_rules.append(rule)
+        elif rule_type == "package":
+            self.package_rules.append(rule)
+        elif rule_type == "job":
+            self.job_rules.append(rule)
+        elif rule_type == "learnt":
+            self.learnt_rules.append(rule)
+        else:
+            raise DepSolverError("Invalid rule_type %s" % (rule_type,))
+
+        rule.id = len(self.rules_by_id)
+        self.rules_by_id.append(rule)
+
+        rules = self.rules_by_hash.get(rule.rule_hash, [])
+        rules.append(rule)
+        self.rules_by_hash[rule.rule_hash] = rules

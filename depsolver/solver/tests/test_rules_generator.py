@@ -15,7 +15,8 @@ from depsolver.requirement \
 
 from depsolver.solver.rules_generator \
     import \
-        create_depends_rule, create_install_rules, iter_conflict_rules
+        create_depends_rule, create_install_rules, iter_conflict_rules, \
+        RulesSet
 from depsolver.solver.rule \
     import \
         PackageInfoLiteral, PackageInfoNot, PackageRule
@@ -319,3 +320,17 @@ class TestCreateInstallClauses(unittest.TestCase):
 
         self.assertEqual(r_rules,
                 set(create_install_rules(pool, Requirement.from_string("numpy"))))
+
+class TestRulesSet(unittest.TestCase):
+    def test_simple(self):
+        repository = Repository([P("mkl-10.1.0"),
+                                 P("numpy-1.7.0; depends (MKL >= 10.1.0)"),
+                                 P("scipy-0.12.0; depends (numpy >= 1.7.0)")])
+        pool = Pool([repository])
+
+        rule = PackageRule(pool, [1, 2], "job_install")
+
+        rules_set = RulesSet()
+        rules_set.add_rule(rule, "package")
+
+        self.assertEqual(len(rules_set), 1)

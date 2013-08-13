@@ -96,16 +96,24 @@ class PackageInfo(HasTraits):
         Example
         -------
         >>> P = PackageInfo.from_string
+        >>> P("numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)")
+        PackageInfo(u'numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
         >>> numpy_1_3_0 = PackageInfo("numpy", Version.from_string("1.3.0"))
         >>> P("numpy-1.3.0") == numpy_1_3_0
         True
-        >>> P("numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)")
-        PackageInfo('numpy-1.3.0; depends (mkl <= 10.4.0, mkl >= 10.3.0)')
         """
         name, version, provides, dependencies = parse_package_string(package_string)
         return cls(name=name, version=version, provides=list(provides),
                    dependencies=list(dependencies))
 
+    def __init__(self, name, version, dependencies=None, provides=None, **kw):
+        if dependencies is None:
+            dependencies = []
+        if provides is None:
+            provides = []
+        super(PackageInfo, self).__init__(name=name, version=version,
+                                          dependencies=dependencies,
+                                          provides=provides, **kw)
     @property
     def unique_name(self):
         return self.name + "-" + str(self.version)

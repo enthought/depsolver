@@ -20,6 +20,21 @@ V = Version.from_string
 R = Requirement.from_string
 
 class TestPackageInfo(unittest.TestCase):
+    def test_simple_construction(self):
+        r_provides = []
+
+        package = PackageInfo("numpy", V("1.3.0"))
+        self.assertEqual(package.provides, r_provides)
+        self.assertEqual(package.dependencies, [])
+        self.assertEqual(package.id, -1)
+
+        r_provides = [R("numpy == 1.3.0")]
+        r_id = -1
+
+        package = PackageInfo("nomkl_numpy", V("1.3.0"), provides=r_provides)
+        self.assertEqual(package.provides, r_provides)
+        self.assertEqual(package.id, r_id)
+
     def test_construction(self):
         r_provides = []
 

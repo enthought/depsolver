@@ -1,13 +1,23 @@
+import hashlib
 import re
 
 import six
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Bool, Enum, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
         MissingPackageInfoInPool
 from depsolver.package \
     import \
         PackageInfo
+from depsolver.pool \
+    import \
+        Pool
+from depsolver.request \
+    import \
+        _Job
 from depsolver.version \
     import \
         Version
@@ -226,26 +236,60 @@ class PackageInfoNot(PackageInfoLiteral, Not):
         package = self._pool.package_by_id(self.name)
         return "-%s" % package
 
-class PackageInfoRule(Rule):
+
+_RULE_REASONS = [
+    "internal_allow_update",
+    "job_install",
+    "job_remove",
+    "package_conflict",
+    "package_requires",
+    "package_obsoletes",
+    "rule_installed_package_obsoletes",
+    "rule_package_same_name",
+    "rule_package_implicit_obsoletes",
+    "rule_learned",
+    "rule_package_alias",
+]
+
+class PackageRule(HasTraits):
     """A Rule where literals are package ids attached to a pool.
 
     It essentially allows for pretty-printing package names instead of internal
     ids as used by the SAT solver underneath.
     """
-    @classmethod
-    def from_string(cls, packages_string, pool):
-        literals = []
-        for package_string in packages_string.split("|"):
-            literals.append(PackageInfoLiteral.from_string(package_string.strip(), pool))
-        return cls(literals, pool)
+    pool = Instance(Pool)
+    literals = List(Long)
+
+    reason = Enum(_RULE_REASONS)
+    reason_details = Unicode("")
+
+    job = Instance(_Job)
+
+    enabled = Bool(True)
+
+    _rule_hash = Unicode("")
 
     @classmethod
-    def from_packages(cls, packages, pool):
-        return cls((PackageInfoLiteral.from_package(p, pool) for p in packages), pool)
+    def from_packages(cls, pool, packages, reason, reason_details="", job=None):
+        literals = [p.id for p in packages]
+        return cls(pool, literals, reason, reason_details, job)
 
-    def __init__(self, literals, pool):
-        self._pool = pool
-        super(PackageInfoRule, self).__init__(literals)
+    def __init__(self, pool, literals, reason, reason_details="", job=None, **kw):
+        literals = sorted(literals)
+        super(PackageRule, self).__init__(pool=pool, literals=literals,
+                reason=reason, reason_details=reason_details, job=job, **kw)
+
+    @property
+    def rule_hash(self):
+        # The exact rule hash algorithm is copied from composer
+        return hashlib.md5(",".join(str(i) for i in self.literals)).hexdigest()[:5]
+
+    def is_equivalent(self, other):
+        """Two rules are considered equivalent if they have the same
+        literals."""
+        if not isinstance(other, PackageRule):
+            return NotImplemented
+        return self.literals == other.literals
 
     def __or__(self, other):
         if isinstance(other, PackageInfoRule):
@@ -260,15 +304,4 @@ class PackageInfoRule(Rule):
             raise TypeError("unsupported type %s" % type(other))
 
     def __repr__(self):
-        # FIXME: this is moronic
-        def _key(l):
-            package = self._pool.package_by_id(l.name)
-            if isinstance(l, Not):
-                # XXX: insert \0 byte to force not package to appear before
-                return "\0" + str(package)
-            else:
-                return str(package)
-        def _simple_literal(l):
-            package = self._pool.package_by_id(l.name)
-            return "-%s" % package if isinstance(l, Not) else "+%s" % str(package)
-        return "(%s)" % " | ".join(_simple_literal(l) for l in sorted(self.literals, key=_key))
+        return "(%s)" % " | ".join(self.pool.id_to_string(l) for l in self.literals)

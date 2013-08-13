@@ -178,3 +178,13 @@ class Pool(HasTraits):
                 return MATCH_PROVIDE
 
         return False
+
+    def id_to_string(self, package_id):
+        """
+        Convert a package id to a nice string representation.
+        """
+        package = self.package_by_id(abs(package_id))
+        if package_id > 0:
+            return "+" + str(package)
+        else:
+            return "-" + str(package)

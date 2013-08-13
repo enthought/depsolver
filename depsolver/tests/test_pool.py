@@ -65,6 +65,14 @@ class TestPool(unittest.TestCase):
         self.assertEqual(self.mkl_10_2_0, pool.package_by_id(self.mkl_10_2_0.id))
         self.assertRaises(MissingPackageInfoInPool, lambda: pool.package_by_id(self.mkl_10_3_0.id))
 
+    def test_literal_to_string(self):
+        pool = Pool([Repository([self.mkl_10_1_0, self.mkl_10_2_0])])
+
+        self.assertEqual(pool.id_to_string(self.mkl_10_2_0.id),
+                         "+mkl-10.2.0")
+        self.assertEqual(pool.id_to_string(-self.mkl_10_1_0.id),
+                         "-mkl-10.1.0")
+
     def test_has_package(self):
         pool = Pool([Repository([self.mkl_10_1_0, self.mkl_10_2_0])])
 

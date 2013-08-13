@@ -5,7 +5,7 @@ from depsolver.errors \
         MissingRequirementInPool
 from depsolver.solver.rule \
     import \
-        PackageInfoLiteral, PackageInfoNot, PackageInfoRule
+        PackageInfoLiteral, PackageInfoNot, PackageRule
 
 # FIXME: all that code below is a lot of crap
 def iter_conflict_rules(pool, packages):
@@ -60,6 +60,6 @@ def create_install_rules(pool, req):
             return clauses
 
     provided = pool.what_provides(req)
-    rule = PackageInfoRule.from_packages(provided, pool)
+    rule = PackageRule.from_packages(provided, pool)
     _append_rule(rule)
     return _add_dependency_rules(req)

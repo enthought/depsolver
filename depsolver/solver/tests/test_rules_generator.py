@@ -13,12 +13,12 @@ from depsolver.requirement \
     import \
         Requirement
 
-from depsolver.solver.create_clauses \
+from depsolver.solver.rules_generator \
     import \
         create_depends_rule, create_install_rules, iter_conflict_rules
 from depsolver.solver.rule \
     import \
-        PackageInfoLiteral, PackageInfoNot, PackageInfoRule
+        PackageInfoLiteral, PackageInfoNot, PackageRule
 
 P = PackageInfo.from_string
 R = Requirement.from_string

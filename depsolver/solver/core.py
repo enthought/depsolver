@@ -4,7 +4,7 @@ from depsolver.errors \
 from depsolver.operations \
     import \
         Install, Remove, Update
-from depsolver.solver.create_clauses \
+from depsolver.solver.rules_generator \
     import \
         create_install_rules
 from depsolver.solver.decisions \

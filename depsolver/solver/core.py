@@ -98,9 +98,25 @@ class Solver(object):
             policy = DefaultPolicy()
         self.policy = policy
 
-        self._id_to_installed_package = dict((p.id, p) for p in
-                                             installed_repository.iter_packages())
-        self._id_to_updated_package = {}
+        self._id_to_installed_package = {}
+        self._id_to_updated_state = {}
+
+    def _compute_package_maps(self, request):
+        """Compute installed and updated package mapping."""
+        for package in self.installed_repository.iter_packages():
+            self._id_to_installed_package[package.id] = package
+
+        for job in request.jobs:
+            if job.job_type == "update":
+                for package in job.packages:
+                    if package.id in self._id_to_installed_package:
+                        self._id_to_updated_state[package.id] = True
+            elif job.job_type == "upgrade":
+                for package in self.installed_repository.iter_packages():
+                    self._id_to_updated_state[package.id] = True
+            elif job.job_type == "install":
+                if len(job.packages) == 0:
+                    raise NotImplementedError("Install wo job not supported yet")
 
     def _run_dpll(self, clauses, variables):
         while True:

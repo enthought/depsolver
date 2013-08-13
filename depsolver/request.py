@@ -1,8 +1,26 @@
-class _Job(object):
-    def __init__(self, packages, job_type, requirement):
-        self.packages = packages
-        self.job_type = job_type
-        self.requirement = requirement
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Enum, Instance, List
+from depsolver.requirement \
+    import \
+        Requirement
+from depsolver.package \
+    import \
+        PackageInfo
+from depsolver.pool \
+    import \
+        Pool
+
+class _Job(HasTraits):
+    packages = List(Instance(PackageInfo))
+    job_type = Enum(["install", "remove", "update", "upgrade"])
+    requirement = Instance(Requirement)
+
+    def __init__(self, packages, job_type, requirement, **kw):
+        if packages is None:
+            packages = packages
+        super(_Job, self).__init__(packages=packages, job_type=job_type,
+                                   requirement=requirement, **kw)
 
     def __eq__(self, other):
         if len(self.packages) != len(other.packages):
@@ -14,16 +32,23 @@ class _Job(object):
             return self.job_type == other.job_type \
                     and self.requirement == other.requirement
 
-class Request(object):
+class Request(HasTraits):
     """A Request instance encompasses the set of jobs to be solved by the
     dependency solver.
     """
-    def __init__(self, pool):
-        self._pool = pool
-        self.jobs = []
+    pool = Instance(Pool)
+
+    _jobs = List(Instance(Pool))
+
+    def __init__(self, pool, **kw):
+        super(Request, self).__init__(pool=pool, _jobs=[], **kw)
+
+    @property
+    def jobs(self):
+        return self._jobs
 
     def _add_job(self, requirement, job_type):
-        packages = self._pool.what_provides(requirement)
+        packages = self.pool.what_provides(requirement)
 
         self.jobs.append(_Job(packages, job_type, requirement))
 

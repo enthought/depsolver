@@ -10,24 +10,28 @@ from depsolver.version \
 from depsolver.bundled.traitlets \
     import \
         HasTraits, Instance, List, Long, Unicode
+from depsolver.errors \
+    import \
+        DepSolverError
 
 R = Requirement.from_string
 V = Version.from_string
 
-_SECTION_RE = re.compile("(depends|provides)\s*\((.*)\)")
+_SECTION_RE = re.compile("(depends|provides|replaces|conflicts|suggests)\s*\((.*)\)")
+_FULL_PACKAGE_RE = re.compile("""\
+                              (?P<name>[^-.]+)
+                              -
+                              (?P<version>(.*))
+                              $""", re.VERBOSE)
 
 def _parse_name_version_part(name_version, loose):
-    parts = name_version.strip().split("-", 1)
-    if len(parts) < 2:
-        raise ValueError("Invalid package string %s" % name_version)
+    name, version_string = parse_package_full_name(name_version)
+    if loose:
+        version = Version.from_loose_string(version_string)
     else:
-        name, version_string = parts
-        if loose:
-            version = Version.from_loose_string(version_string)
-        else:
-            version = V(version_string)
+        version = V(version_string)
 
-        return name, version
+    return name, version
 
 def _parse_requirements_string(s):
     m = _SECTION_RE.search(s)
@@ -40,6 +44,17 @@ def _parse_requirements_string(s):
             requirements.add(R(requirement_string))
         return requirements
 
+def parse_package_full_name(full_name):
+    """
+    Parse a package full name (e.g. 'numpy-1.6.0') into a (name,
+    version_string) pair.
+    """
+    m = _FULL_PACKAGE_RE.match(full_name)
+    if m:
+        return m.group("name"), m.group("version")
+    else:
+        raise DepSolverError("Invalid package full name %s" % (full_name,))
+
 def parse_package_string(package_string, loose=False):
     parts = package_string.split(";")
 
@@ -50,6 +65,9 @@ def parse_package_string(package_string, loose=False):
 
     dependencies = set()
     provides = set()
+    conflicts = set()
+    replaces = set()
+    suggests = set()
 
     if len(parts) > 1:
         for part in parts[1:]:
@@ -58,10 +76,16 @@ def parse_package_string(package_string, loose=False):
                 dependencies = _parse_requirements_string(part)
             elif part.startswith("provides"):
                 provides = _parse_requirements_string(part)
+            elif part.startswith("conflicts"):
+                conflicts = _parse_requirements_string(part)
+            elif part.startswith("replaces"):
+                replaces = _parse_requirements_string(part)
+            elif part.startswith("suggests"):
+                suggests = _parse_requirements_string(part)
             else:
                 raise ValueError("syntax error: %r" % part)
 
-    return name, version, provides, dependencies
+    return name, version, provides, dependencies, conflicts, replaces, suggests
 
 class PackageInfo(HasTraits):
     """
@@ -84,6 +108,9 @@ class PackageInfo(HasTraits):
 
     dependencies = List(Instance(Requirement))
     provides = List(Instance(Requirement))
+    conflicts = List(Instance(Requirement))
+    replaces = List(Instance(Requirement))
+    suggests = List(Instance(Requirement))
 
     id = Long(-1)
 
@@ -102,18 +129,31 @@ class PackageInfo(HasTraits):
         >>> P("numpy-1.3.0") == numpy_1_3_0
         True
         """
-        name, version, provides, dependencies = parse_package_string(package_string)
+        name, version, provides, dependencies, conflicts, replaces, suggests \
+                = parse_package_string(package_string)
         return cls(name=name, version=version, provides=list(provides),
-                   dependencies=list(dependencies))
+                   dependencies=list(dependencies), conflicts=list(conflicts),
+                   replaces=list(replaces), suggests=list(suggests))
 
-    def __init__(self, name, version, dependencies=None, provides=None, **kw):
+    def __init__(self, name, version, dependencies=None, provides=None, conflicts=None,
+                 replaces=None, suggests=None, **kw):
         if dependencies is None:
             dependencies = []
         if provides is None:
             provides = []
+        if conflicts is None:
+            conflicts = []
+        if replaces is None:
+            replaces = []
+        if suggests is None:
+            suggests = []
         super(PackageInfo, self).__init__(name=name, version=version,
                                           dependencies=dependencies,
-                                          provides=provides, **kw)
+                                          provides=provides,
+                                          conflicts=conflicts,
+                                          replaces=replaces,
+                                          suggests=suggests,
+                                          **kw)
     @property
     def unique_name(self):
         return self.name + "-" + str(self.version)
@@ -125,6 +165,12 @@ class PackageInfo(HasTraits):
             strings.append("depends (%s)" % ", ".join(str(s) for s in self.dependencies))
         if self.provides:
             strings.append("provides (%s)" % ", ".join(str(s) for s in self.provides))
+        if self.conflicts:
+            strings.append("conflicts (%s)" % ", ".join(str(s) for s in self.conflicts))
+        if self.replaces:
+            strings.append("replaces (%s)" % ", ".join(str(s) for s in self.replaces))
+        if self.suggests:
+            strings.append("suggests (%s)" % ", ".join(str(s) for s in self.suggests))
         return "; ".join(strings)
 
     @property

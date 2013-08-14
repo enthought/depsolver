@@ -3,9 +3,12 @@ import unittest
 
 import six
 
+from depsolver.errors \
+    import \
+        DepSolverError
 from depsolver.package \
     import \
-        PackageInfo
+        PackageInfo, parse_package_full_name
 from depsolver.repository \
     import \
         Repository
@@ -76,19 +79,60 @@ class TestPackageInfo(unittest.TestCase):
 
 class TestPackageInfoFromString(unittest.TestCase):
     def test_simple(self):
+        r_package_string = "numpy-1.3.0"
         r_package = PackageInfo(name="numpy", version=V("1.3.0"))
 
-        self.assertEqual(PackageInfo.from_string("numpy-1.3.0"), r_package)
-        self.assertRaises(ValueError, lambda: PackageInfo.from_string("numpy 1.3.0"))
+        package = PackageInfo.from_string(r_package_string)
+
+        self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+        self.assertRaises(DepSolverError, lambda: PackageInfo.from_string("numpy 1.3.0"))
 
     def test_dependencies(self):
+        r_package_string = "numpy-1.6.0; depends (mkl >= 10.3.0)"
         r_package = PackageInfo(name="numpy", version=V("1.6.0"), dependencies=[R("mkl >= 10.3.0")])
-        package = PackageInfo.from_string("numpy-1.6.0; depends (mkl >= 10.3.0)")
+        package = PackageInfo.from_string(r_package_string)
 
         self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
 
     def test_provides(self):
+        r_package_string = "nomkl_numpy-1.6.0; provides (numpy == 1.6.0)"
         r_package = PackageInfo(name="nomkl_numpy", version=V("1.6.0"), provides=[R("numpy == 1.6.0")])
-        package = PackageInfo.from_string("nomkl_numpy-1.6.0; provides (numpy == 1.6.0)")
+        package = PackageInfo.from_string(r_package_string)
 
         self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+
+    def test_conflicts(self):
+        r_package_string = "nomkl_numpy-1.6.0; conflicts (numpy == 1.6.0)"
+        r_package = PackageInfo(name="nomkl_numpy", version=V("1.6.0"),
+                                conflicts=[R("numpy == 1.6.0")])
+
+        package = PackageInfo.from_string(r_package_string)
+
+        self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+
+    def test_replaces(self):
+        r_package_string = "mkl_numpy-1.6.0; replaces (numpy == 1.6.0)"
+        r_package = PackageInfo(name="mkl_numpy", version=V("1.6.0"), replaces=[R("numpy == 1.6.0")])
+        package = PackageInfo.from_string(r_package_string)
+
+        self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+
+    def test_suggests(self):
+        r_package_string = "numpy-1.6.0; suggests (scipy == 1.6.0)"
+        r_package = PackageInfo(name="numpy", version=V("1.6.0"), suggests=[R("scipy")])
+
+        package = PackageInfo.from_string(r_package_string)
+
+        self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+
+class TestParsePackageName(unittest.TestCase):
+    def test_simple(self):
+        name, version = parse_package_full_name("numpy-1.6.0")
+        self.assertEqual(name, "numpy")
+        self.assertEqual(version, "1.6.0")

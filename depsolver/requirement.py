@@ -1,9 +1,15 @@
+from depsolver._package_utils \
+    import \
+        parse_package_full_name
 from depsolver.errors \
     import \
         DepSolverError
 from depsolver.constraints \
     import \
         Equal, GEQ, GT, LEQ, LT, Not
+from depsolver.package \
+    import \
+        parse_package_full_name
 from depsolver.requirement_parser \
     import \
         RawRequirementParser
@@ -50,6 +56,20 @@ class Requirement(object):
             raise DepSolverError("Invalid requirement string %r" % requirement_string)
         else:
             return requirements[0]
+
+    @classmethod
+    def from_package_string(cls, package_string):
+        """Creates a new Requirement from a package string.
+
+        This is equivalent to the requirement 'package.name == package.version'
+
+        Arguments
+        ---------
+        package_string: str
+            The package string, e.g. 'numpy-1.3.0'
+        """
+        name, version = parse_package_full_name(package_string)
+        return cls(name, [Equal(version)])
 
     def __init__(self, name, specs):
         self.name = name

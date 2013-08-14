@@ -1,6 +1,9 @@
 import hashlib
 import re
 
+from depsolver._package_utils \
+    import \
+        parse_package_full_name
 from depsolver.requirement \
     import \
         Requirement
@@ -18,11 +21,6 @@ R = Requirement.from_string
 V = Version.from_string
 
 _SECTION_RE = re.compile("(depends|provides|replaces|conflicts|suggests)\s*\((.*)\)")
-_FULL_PACKAGE_RE = re.compile("""\
-                              (?P<name>[^-.]+)
-                              -
-                              (?P<version>(.*))
-                              $""", re.VERBOSE)
 
 def _parse_name_version_part(name_version, loose):
     name, version_string = parse_package_full_name(name_version)
@@ -43,17 +41,6 @@ def _parse_requirements_string(s):
         for requirement_string in requirements_string.split(","):
             requirements.add(R(requirement_string))
         return requirements
-
-def parse_package_full_name(full_name):
-    """
-    Parse a package full name (e.g. 'numpy-1.6.0') into a (name,
-    version_string) pair.
-    """
-    m = _FULL_PACKAGE_RE.match(full_name)
-    if m:
-        return m.group("name"), m.group("version")
-    else:
-        raise DepSolverError("Invalid package full name %s" % (full_name,))
 
 def parse_package_string(package_string, loose=False):
     parts = package_string.split(";")

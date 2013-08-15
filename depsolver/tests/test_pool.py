@@ -131,5 +131,12 @@ class TestPool(unittest.TestCase):
                          set([self.numpy_1_7_0, self.nomkl_numpy_1_7_0]))
         self.assertEqual(set(pool.what_provides(R("numpy >= 1.6.1"), 'direct_only')),
                          set([self.numpy_1_7_0]))
-        self.assertEqual(set(pool.what_provides(R("numpy >= 1.6.1"), 'any')),
-                         set([self.numpy_1_6_0, self.numpy_1_7_0, self.nomkl_numpy_1_7_0]))
+
+    def test_what_provides_replaces(self):
+        scikit_learn = P("scikit_learn-0.12.0")
+        sklearn = P("sklearn-0.13.0; replaces (scikit_learn==0.12.0)")
+        pool = Pool([Repository([scikit_learn, sklearn])])
+
+        self.assertEqual(set(pool.what_provides(R("sklearn"))), set([sklearn]))
+        self.assertEqual(set(pool.what_provides(R("scikit_learn"))), set([sklearn, scikit_learn]))
+

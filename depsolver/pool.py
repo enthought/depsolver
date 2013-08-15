@@ -16,9 +16,11 @@ from depsolver.requirement \
     import \
         Requirement
 
+MATCH_NONE = 0
 MATCH_NAME = 1
 MATCH = 2
 MATCH_PROVIDE = 3
+MATCH_REPLACE = 4
 
 class Pool(HasTraits):
     """Pool objects model a pool of repositories.
@@ -67,6 +69,8 @@ class Pool(HasTraits):
             self._packages_by_name[package.name].append(package)
             for provide in package.provides:
                 self._packages_by_name[provide.name].append(package)
+            for replace in package.replaces:
+                self._packages_by_name[replace.name].append(package)
 
     def package_by_id(self, package_id):
         """Retrieve a package from its id.
@@ -100,41 +104,40 @@ class Pool(HasTraits):
                 - 'include_indirect': only returns packages that match this
                   requirement directly or indirectly (i.e. includes packages
                   that provides this package)
-                - 'any': returns any version of the package regardless of the
-                  version, includes packages matching directly and indirectly.
         """
         # FIXME: this is conceptually copied from whatProvides in Composer, but
         # I don't understand why the policy of preferring non-provided over
         # provided packages is handled here.
-        if not mode in ['composer', 'direct_only', 'include_indirect', 'any']:
+        if not mode in ['composer', 'direct_only', 'include_indirect']:
             raise ValueError("Invalid mode %r" % mode)
 
-        any_matches = []
         strict_matches = []
         provided_match = []
+        name_match = False
 
         for package in self._packages_by_name[requirement.name]:
             match = self.matches(package, requirement)
             if match == MATCH_NAME:
-                any_matches.append(package)
+                name_match = True
             elif match == MATCH:
+                name_match = True
                 strict_matches.append(package)
             elif match == MATCH_PROVIDE:
                 provided_match.append(package)
+            elif match == MATCH_REPLACE:
+                strict_matches.append(package)
             else:
                 raise ValueError("Invalid match type: {}".format(match))
 
         if mode == 'composer':
-            if len(any_matches) > 0 or len(strict_matches) > 0:
+            if name_match:
                 return strict_matches
             else:
-                return provided_match
+                return strict_matches + provided_match
         elif mode == 'direct_only':
             return strict_matches
         elif mode == 'include_indirect':
             return strict_matches + provided_match
-        elif mode == 'any':
-            return strict_matches + provided_match + any_matches
 
     def matches(self, candidate, requirement):
         """Checks whether the candidate package matches the requirement, either
@@ -166,18 +169,21 @@ class Pool(HasTraits):
         True
         """
         if requirement.name == candidate.name:
-            candidate_requirement_string = "%s == %s" % (candidate.name, candidate.version)
-            candidate_requirement = Requirement.from_string(candidate_requirement_string)
-            if requirement.matches(candidate_requirement):
+            candidate_requirement = Requirement.from_package_string(candidate.unique_name)
+            if requirement.is_universal or candidate_requirement.matches(requirement):
                 return MATCH
             else:
                 return MATCH_NAME
+        else:
+            for provide in candidate.provides:
+                if requirement.matches(provide):
+                    return MATCH_PROVIDE
 
-        for provide in candidate.provides:
-            if requirement.matches(provide):
-                return MATCH_PROVIDE
+            for replace in candidate.replaces:
+                if requirement.matches(replace):
+                    return MATCH_REPLACE
 
-        return False
+            return MATCH_NONE
 
     def id_to_string(self, package_id):
         """

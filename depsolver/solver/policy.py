@@ -5,9 +5,14 @@ import six
 from depsolver.errors \
     import \
         DepSolverError
+from depsolver.requirement \
+    import \
+        Requirement
 from depsolver.version \
     import \
         MaxVersion
+
+R = Requirement.from_string
 
 class DefaultPolicy(object):
     """A Policy class that implements 'reasonable' defaults.
@@ -74,6 +79,15 @@ class DefaultPolicy(object):
             except StopIteration:
                 raise DepSolverError("No candidate in package_queues ?")
             return collections.deque(candidates)
+
+    def find_updated_packages(self, pool, installed_map, package):
+        packages = []
+
+        for candidate in pool.what_provides(R(package.name)):
+            if candidate != package:
+                packages.append(candidate)
+
+        return packages
 
 def prune_to_best_version(pool, package_ids):
     # Assume package_ids is already sorted (from max to min)

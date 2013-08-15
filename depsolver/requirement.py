@@ -133,13 +133,18 @@ class Requirement(object):
                 else:
                     operator_string = "<="
                 r.append("%s %s %s" % (self.name, operator_string, self._max_bound))
-            if self._min_bound == MinVersion() and self._max_bound == MaxVersion() \
-                    and len(self._not_equals) == 0:
+            if self.is_universal:
                 r.append("%s *" % self.name)
             for neq in self._not_equals:
                 if neq > self._min_bound and neq < self._max_bound:
                     r.append("%s != %s" % (self.name, neq))
         return ", ".join(r)
+
+    @property
+    def is_universal(self):
+        """Returns True if the requirement can matche any version."""
+        return self._min_bound == MinVersion() and self._max_bound == MaxVersion() \
+                and len(self._not_equals) == 0
 
     def __eq__(self, other):
         return repr(self) == repr(other)

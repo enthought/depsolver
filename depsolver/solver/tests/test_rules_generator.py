@@ -1,5 +1,7 @@
 import unittest
 
+import os.path as op
+
 from depsolver.package \
     import \
         PackageInfo
@@ -9,22 +11,28 @@ from depsolver.pool \
 from depsolver.repository \
     import \
         Repository
+from depsolver.request \
+    import \
+        Request
 from depsolver.requirement \
     import \
         Requirement
 
 from depsolver.solver.rules_generator \
     import \
-        create_depends_rule, create_install_rules, iter_conflict_rules, \
-        RulesSet
+        RulesSet, RulesGenerator
 from depsolver.solver.rule \
     import \
-        PackageInfoLiteral, PackageInfoNot, PackageRule
+        PackageRule
+
+from depsolver.solver.tests.scenarios.rules_generator \
+    import \
+       DATA, RulesGeneratorScenario
 
 P = PackageInfo.from_string
 R = Requirement.from_string
 
-class TestPackageInfoRule(unittest.TestCase):
+class TestPackageRule(unittest.TestCase):
     def setUp(self):
         self.mkl_10_1_0 = P("mkl-10.1.0")
         self.mkl_10_2_0 = P("mkl-10.2.0")
@@ -54,40 +62,32 @@ class TestPackageInfoRule(unittest.TestCase):
 
         self.pool = pool
 
-    @unittest.expectedFailure
-    def test_or(self):
-        rule = PackageInfoRule.from_packages([mkl_10_1_0, mkl_10_2_0], self.pool)
-        rule |= PackageInfoNot.from_package(mkl_11_0_0, self.pool)
-
-        self.assertTrue(rule.literals, set([mkl_11_0_0.id, mkl_10_1_0.id, mkl_10_2_0.id]))
-
-    @unittest.expectedFailure
-    def test_repr(self):
-        rule_repr = repr(PackageInfoRule.from_packages([mkl_11_0_0, mkl_10_1_0, mkl_10_2_0], self.pool))
+    def test_str(self):
+        rule = PackageRule.from_packages(self.pool, [self.mkl_11_0_0,
+                                         self.mkl_10_1_0, self.mkl_10_2_0], None)
+        rule_repr = str(rule)
         self.assertEqual(rule_repr, "(+mkl-10.1.0 | +mkl-10.2.0 | +mkl-11.0.0)")
 
-        rule_repr = repr(PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool)], self.pool) \
-                | PackageInfoRule.from_packages([mkl_11_0_0], self.pool))
+        rule_repr = str(PackageRule(self.pool, [-self.mkl_10_2_0.id, self.mkl_11_0_0.id], None))
         self.assertEqual(rule_repr, "(-mkl-10.2.0 | +mkl-11.0.0)")
 
-    @unittest.expectedFailure
     def test_from_package_string(self):
-        rule = PackageInfoRule.from_string("mkl-11.0.0", self.pool)
-        self.assertEqual(rule, PackageInfoRule.from_packages([mkl_11_0_0], self.pool))
+        r_rule = PackageRule.from_packages(self.pool, [self.mkl_11_0_0], None)
 
-        rule = PackageInfoRule.from_string("mkl-10.2.0 | mkl-11.0.0", self.pool)
-        self.assertEqual(rule, PackageInfoRule.from_packages([mkl_10_2_0, mkl_11_0_0], self.pool))
+        rule = PackageRule.from_string(self.pool, "mkl-11.0.0", None)
+        self.assertTrue(rule.is_equivalent(r_rule))
 
-        rule = PackageInfoRule.from_string("-mkl-10.2.0 | mkl-11.0.0", self.pool)
-        self.assertEqual(rule,
-                PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool),
-                             PackageInfoLiteral.from_package(mkl_11_0_0, self.pool)], self.pool))
+        r_rule = PackageRule.from_packages(self.pool, [self.mkl_10_2_0, self.mkl_11_0_0], None)
+        rule = PackageRule.from_string(self.pool, "mkl-10.2.0 | mkl-11.0.0", None)
+        self.assertTrue(rule.is_equivalent(r_rule))
 
-        rule = PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool)
-        self.assertEqual(rule,
-                PackageInfoRule([PackageInfoNot.from_package(mkl_10_2_0, self.pool),
-                             PackageInfoNot.from_package(mkl_11_0_0, self.pool)],
-                            self.pool))
+        r_rule = PackageRule(self.pool, [-self.mkl_10_2_0.id, self.mkl_11_0_0.id], None)
+        rule = PackageRule.from_string(self.pool, "-mkl-10.2.0 | mkl-11.0.0", None)
+        self.assertTrue(rule.is_equivalent(r_rule))
+
+        r_rule = PackageRule(self.pool, [-self.mkl_10_2_0.id, -self.mkl_11_0_0.id], None)
+        rule = PackageRule.from_string(self.pool, "-mkl-10.2.0 | -mkl-11.0.0", None)
+        self.assertTrue(rule.is_equivalent(r_rule))
 
 class TestCreateClauses(unittest.TestCase):
     def setUp(self):
@@ -105,14 +105,20 @@ class TestCreateClauses(unittest.TestCase):
 
         self.pool = pool
 
-    @unittest.expectedFailure
     def test_create_depends_rule(self):
-        r_rule = PackageInfoRule.from_string(
+        r_rule = PackageRule.from_string(self.pool,
                     "-numpy-1.6.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0",
-                    self.pool)
-        rule = create_depends_rule(self.pool, numpy_1_6_0, R("mkl"))
+                    None)
 
-        self.assertEqual(rule, r_rule)
+        req = R("numpy")
+        request = Request(self.pool)
+        request.install(req)
+
+        rules_generator = RulesGenerator(self.pool, request)
+        dependencies = self.pool.what_provides(self.numpy_1_6_0.dependencies[0])
+        rule = rules_generator._create_dependency_rule(self.numpy_1_6_0, dependencies, None)
+
+        self.assertTrue(rule.is_equivalent(r_rule))
 
     @unittest.expectedFailure
     def test_iter_conflict_rules(self):
@@ -121,205 +127,12 @@ class TestCreateClauses(unittest.TestCase):
 
         # 3 packages conflicting with each other -> 3 rules (C_3^2)
         r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
+        r_rules.add(PackageRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
+        r_rules.add(PackageRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
 
         self.assertEqual(r_rules,
                 set(iter_conflict_rules(self.pool, [mkl_10_1_0, mkl_10_2_0, mkl_10_3_0])))
-
-class TestCreateInstallClauses(unittest.TestCase):
-    def setUp(self):
-        self.mkl_10_1_0 = P("mkl-10.1.0")
-        self.mkl_10_2_0 = P("mkl-10.2.0")
-        self.mkl_10_3_0 = P("mkl-10.3.0")
-        self.mkl_11_0_0 = P("mkl-11.0.0")
-
-        self.numpy_1_6_0 = P("numpy-1.6.0; depends (mkl)")
-        self.numpy_1_6_1 = P("numpy-1.6.1; depends (mkl)")
-        self.numpy_1_7_0 = P("numpy-1.7.0; depends (mkl)")
-
-        self.mkl_numpy_1_6_0 = P("mkl_numpy-1.6.0; depends (mkl); provides (numpy == 1.6.0)")
-        self.mkl_numpy_1_6_1 = P("mkl_numpy-1.6.1; depends (mkl); provides (numpy == 1.6.1)")
-        self.mkl_numpy_1_7_0 = P("mkl_numpy-1.7.0; depends (mkl); provides (numpy == 1.7.0)")
-
-        repo = Repository([self.mkl_10_1_0, self.mkl_10_2_0, self.mkl_10_3_0,
-            self.mkl_11_0_0, self.numpy_1_6_0, self.numpy_1_6_1, self.numpy_1_7_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        self.pool = pool
-
-    @unittest.expectedFailure
-    def test_create_install_rules_simple(self):
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string(
-            "mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", self.pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", self.pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(self.pool, R("mkl"))))
-
-    @unittest.expectedFailure
-    def test_create_install_rules_simple_dependency(self):
-        # Installed requirement has only one provide
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0, numpy_1_7_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, R("numpy"))))
-
-    @unittest.expectedFailure
-    def test_multiple_install_provides(self):
-        # Installed requirement has > 1 one provide
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0,
-            numpy_1_6_1, numpy_1_7_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0 | numpy-1.6.1", pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, R("numpy"))))
-
-    @unittest.expectedFailure
-    def test_multiple_provided_names_single_install_provide(self):
-        # Installed requirement has 1 one provide, but multiple provides for
-        # the same name are available in the pool
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0,
-            numpy_1_6_1, numpy_1_7_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("numpy-1.7.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, R("numpy == 1.7.0"))))
-
-    @unittest.expectedFailure
-    def test_already_installed_indirect_provided(self):
-        # Installed requirement has one dependency with multiple provides for
-        # the same name available in the pool, one of which is already
-        # installed. Here: scipy depends on numpy, nomkl_numpy is also
-        # available and already installed
-        repo = Repository([mkl_11_0_0, nomkl_numpy_1_7_0, numpy_1_7_0, scipy_0_11_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("scipy-0.11.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-scipy-0.11.0 | numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -nomkl_numpy-1.7.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.7.0 | mkl-11.0.0", pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, R("scipy"))))
-
-    @unittest.expectedFailure
-    def test_complex_scenario_1(self):
-        repo = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0,
-            numpy_1_6_0, numpy_1_6_1, numpy_1_7_0, scipy_0_11_0, scipy_0_12_0])
-        pool = Pool()
-        pool.add_repository(repo)
-
-        r_rules = set()
-        r_rules.add(PackageInfoRule.from_string("scipy-0.11.0 | scipy-0.12.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-scipy-0.11.0 | -scipy-0.12.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-                    "-scipy-0.11.0 | numpy-1.6.0 | numpy-1.6.1 | numpy-1.7.0",
-                    pool))
-        r_rules.add(PackageInfoRule.from_string(
-                    "-scipy-0.12.0 | numpy-1.6.0 | numpy-1.6.1 | numpy-1.7.0",
-                    pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.7.0 | -numpy-1.6.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-numpy-1.6.0 | -numpy-1.6.1", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string(
-            "-numpy-1.6.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(PackageInfoRule.from_string("-mkl-10.3.0 | -mkl-11.0.0", pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, R("scipy"))))
-
-    @unittest.expectedFailure
-    def test_complex_scenario_2(self):
-        repository = Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0,
-            mkl_numpy_1_6_1, mkl_numpy_1_7_0, nomkl_numpy_1_7_0, matplotlib_1_2_0])
-        pool = Pool()
-        pool.add_repository(repository)
-
-        installed_repository = Repository()
-        installed_repository.add_package(mkl_10_3_0)
-        installed_repository.add_package(mkl_numpy_1_7_0)
-        pool.add_repository(installed_repository)
-
-        R = PackageInfoRule.from_string
-        r_rules = set()
-        r_rules.add(R("mkl_numpy-1.6.1 | mkl_numpy-1.7.0 | nomkl_numpy-1.7.0", pool))
-        r_rules.add(R("-mkl_numpy-1.6.1 | -nomkl_numpy-1.7.0", pool))
-        r_rules.add(R("-mkl_numpy-1.7.0 | -nomkl_numpy-1.7.0", pool))
-        r_rules.add(R("-mkl_numpy-1.6.1 | -mkl_numpy-1.7.0", pool))
-        r_rules.add(R("-mkl_numpy-1.6.1 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0", pool))
-        r_rules.add(R("-mkl-10.1.0 | -mkl-11.0.0", pool))
-        r_rules.add(R("-mkl-10.2.0 | -mkl-11.0.0", pool))
-        r_rules.add(R("-mkl-10.3.0 | -mkl-11.0.0", pool))
-        r_rules.add(R("-mkl-10.1.0 | -mkl-10.2.0", pool))
-        r_rules.add(R("-mkl-10.1.0 | -mkl-10.3.0", pool))
-        r_rules.add(R("-mkl-10.2.0 | -mkl-10.3.0", pool))
-        r_rules.add(R("-mkl_numpy-1.7.0 | mkl-10.1.0 | mkl-10.2.0 | mkl-10.3.0 | mkl-11.0.0",
-                    pool))
-
-        self.assertEqual(r_rules,
-                set(create_install_rules(pool, Requirement.from_string("numpy"))))
 
 class TestRulesSet(unittest.TestCase):
     def test_simple(self):
@@ -334,3 +147,73 @@ class TestRulesSet(unittest.TestCase):
         rules_set.add_rule(rule, "package")
 
         self.assertEqual(len(rules_set), 1)
+
+class TestRulesGeneratorScenarios(unittest.TestCase):
+    def _compute_rules(self, scenario_description):
+        filename = op.join(DATA, scenario_description)
+        
+        fp = open(op.join(DATA, op.splitext(scenario_description)[0] + ".test"))
+        try:
+            r_rules = [line.rstrip() for line in fp]
+        finally:
+            fp.close()
+
+        scenario = RulesGeneratorScenario.from_yaml(filename)
+        scenario.to_php("yo.php")
+        rules = [str(r) for r in scenario.compute_rules()]
+
+        self.assertEqual(r_rules, rules)
+
+    def test_complex_scenario1(self):
+        scenario = "complex_scenario1.yaml"
+        self._compute_rules(scenario)
+
+    def test_complex_scenario2(self):
+        scenario = "complex_scenario2.yaml"
+        self._compute_rules(scenario)
+
+    def test_conflict_scenario1(self):
+        scenario = "conflict_scenario1.yaml"
+        self._compute_rules(scenario)
+
+    def test_multiple_provides_4_candidates(self):
+        """Test rules creation for a single package wo dependencies and 4 candidates."""
+        scenario = "multiple_provides_4_candidates.yaml"
+        self._compute_rules(scenario)
+
+    def test_multiple_provides_single_fulfilled_provides(self):
+        """Test rules creation when multiple versions are available but only
+        one fulfills the request."""
+        scenario = "multiple_provides_single_fulfilled_provides.yaml"
+        self._compute_rules(scenario)
+
+    def test_multiple_provides_simple(self):
+        """Test we generate obsolete rules when multiple candidates exist for a
+        given package requirement."""
+        scenario = "multiple_provides_simple.yaml"
+        self._compute_rules(scenario)
+
+    def test_already_installed_indirect_provided(self):
+        scenario = "multiple_provides_1_installed.yaml"
+        self._compute_rules(scenario)
+
+    def test_single_dependency_simple(self):
+        scenario = "single_dependency_simple.yaml"
+        self._compute_rules(scenario)
+
+    def test_single_dependency_installed_simple(self):
+        scenario = "single_dependency_installed_simple.yaml"
+        self._compute_rules(scenario)
+
+    def test_single_dependency_multiple_provides(self):
+        scenario = "single_dependency_multiple_provides.yaml"
+        self._compute_rules(scenario)
+
+    def test_replace_scenario1(self):
+        scenario = "replace_scenario1.yaml"
+        self._compute_rules(scenario)
+
+    def test_replace_scenario2(self):
+        scenario = "replace_scenario2.yaml"
+        self._compute_rules(scenario)
+

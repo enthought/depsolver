@@ -15,9 +15,6 @@ from depsolver.repository \
 from depsolver.solver.decisions \
     import \
         DecisionsSet
-from depsolver.solver.rule \
-    import \
-        PackageInfoLiteral
 
 P = PackageInfo.from_string
 

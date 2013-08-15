@@ -3,9 +3,6 @@ import collections
 from depsolver.errors \
     import \
         DepSolverError, UndefinedDecision
-from depsolver.solver.rule \
-    import \
-        Not
 
 class DecisionsSet(object):
     """A DecisionsSet instance keeps track of decided literals (and the

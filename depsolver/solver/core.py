@@ -4,18 +4,12 @@ from depsolver.errors \
 from depsolver.operations \
     import \
         Install, Remove, Update
-from depsolver.solver.rules_generator \
-    import \
-        create_install_rules
 from depsolver.solver.decisions \
     import \
         DecisionsSet
 from depsolver.solver.policy \
     import \
         DefaultPolicy
-from depsolver.solver.rule \
-    import \
-        PackageInfoLiteral
 
 def run_unit_propagation(clauses, variables):
     """Run unit propagation, i.e. for each unit clause, infer the corresponding

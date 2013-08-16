@@ -13,10 +13,19 @@ matrix:
       env: NEEDS_UNITTEST2="true"
     - python: 2.7
       env: NEEDS_UNITTEST2="true"
+    - python: pypy
+      env: NEEDS_UNITTEST2="true"
+  exclude:
+    - python: 2.6
+      env: NEEDS_UNITTEST2=""
+    - python: 2.7
+      env: NEEDS_UNITTEST2=""
+    - python: pypy
+      env: NEEDS_UNITTEST2=""
 install:
    - pip install nose coverage pyyaml six tempita
    - if [ "${NEEDS_UNITTEST2}" == "true" ]; then
-       pip install unittest2
+       pip install unittest2;
        fi
 script:
   - nosetests --with-coverage --cover-package=depsolver --cover-inclusive depsolver

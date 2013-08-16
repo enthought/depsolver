@@ -1,8 +1,5 @@
 import collections
-import glob
 import json
-import subprocess
-import tempfile
 
 import os.path as op
 
@@ -36,12 +33,13 @@ from depsolver.version \
 
 from depsolver.bundled.traitlets \
     import \
-        HasTraits, Dict, Instance, List, Long, Unicode
+        HasTraits, Instance
 
 from depsolver.solver.tests.scenarios.common \
     import \
-        COMMON_IMPORTS, COMPOSER_PATH, packages_list_to_php_json, \
-        requirement_to_php_string, requirement_string_to_php_constraints
+        COMMON_IMPORTS, COMPOSER_PATH, BaseScenario, packages_list_to_php_json, \
+        requirement_to_php_string, requirement_string_to_php_constraints, \
+        job_to_php_constraints, run_php_scenarios
 
 DATA = op.join(op.dirname(__file__), "data", "rules_generator")
 
@@ -123,50 +121,33 @@ $solver->printRules($request);
 """
 
 class RulesGeneratorScenario(HasTraits):
-    remote_repository = Instance(Repository)
-    installed_repository = Instance(Repository)
+    _base_scenario = Instance(BaseScenario)
 
-    pool = Instance(Pool)
-    request = Instance(Request)
+    @property
+    def remote_repository(self):
+        return self._base_scenario.remote_repository
+
+    @property
+    def installed_repository(self):
+        return self._base_scenario.installed_repository
+
+    @property
+    def pool(self):
+        return self._base_scenario.pool
+
+    @property
+    def request(self):
+        return self._base_scenario.request
 
     @classmethod
     def from_yaml(cls, filename):
-        with open(filename, "rt") as fp:
-            raw_data = yaml.load(fp)
-
-        packages = [P(s) for s in raw_data.get("packages", [])]
-        package_name_to_package = {}
-        for package in packages:
-            package_name_to_package[package.unique_name] = package
-
-        raw_installed_packages = raw_data.get("installed_repository", []) or []
-        installed_packages = [package_name_to_package[package_name] \
-                                for package_name in raw_installed_packages]
-            
-        raw_remote_packages = raw_data.get("remote_repository", []) or []
-        remote_packages = [package_name_to_package[package_name] \
-                             for package_name in raw_remote_packages]
-
-        request_data = [(r["operation"], r["requirement"]) \
-                        for r in raw_data.get("request", []) or []]
-
-        return cls.from_data(remote_packages=remote_packages,
-                installed_packages=installed_packages,
-                request_jobs=request_data)
+        base_scenario = BaseScenario.from_yaml(filename)
+        return cls(_base_scenario=base_scenario)
 
     @classmethod
     def from_data(cls, remote_packages, installed_packages, request_jobs):
-        remote_repository = Repository(packages=[P(p.package_string) for p in remote_packages])
-        installed_repository = Repository(packages=[P(p.package_string) for p in installed_packages])
-
-        pool = Pool([remote_repository, installed_repository])
-        request = Request(pool)
-        for name, requirement_string in request_jobs:
-            getattr(request, name)(R(requirement_string))
-
-        return cls(remote_repository=remote_repository,
-                   installed_repository=installed_repository,
-                   pool=pool, request=request)
+        base_scenario = BaseScenario.from_data(filename)
+        return cls(_base_scenario=base_scenario)
 
     def compute_rules(self):
         installed_map = collections.OrderedDict()
@@ -185,15 +166,6 @@ class RulesGeneratorScenario(HasTraits):
 
         remote_packages = self.remote_repository.list_packages()
         installed_packages = self.installed_repository.list_packages()
-
-
-        def job_to_php_constraints(job):
-            s = str(job.requirement)
-
-            constraints = ['new VersionConstraint("%s", "%s")' % \
-                           (ret[0], ret[1]) \
-                            for ret in requirement_string_to_php_constraints(s)]
-            return ',\n'.join(constraints)
 
         variables = {
                 "bootstrap_path": bootstrap_path,
@@ -227,17 +199,5 @@ def post_process(output):
     return "\n".join(lines)
 
 if __name__ == "__main__":
-    d = op.join(op.dirname(__file__), "data", "rules_generator")
-
-    for path in glob.glob(op.join(d, "*.yaml")):
-        print path
-        php_file = op.splitext(path)[0] + ".php"
-
-        scenario = RulesGeneratorScenario.from_yaml(path)
-        scenario.to_php(php_file, composer_location=COMPOSER_PATH)
-        with tempfile.NamedTemporaryFile(suffix=".php") as fp:
-            scenario.to_php(fp.name, composer_location=COMPOSER_PATH)
-
-            with open(op.splitext(path)[0] + ".test", "wt") as ofp:
-                output = subprocess.check_output(["php", fp.name])
-                ofp.write(post_process(output))
+    data_directory = op.join(op.dirname(__file__), "data", "rules_generator")
+    run_php_scenarios(data_directory, RulesGeneratorScenario, post_process)

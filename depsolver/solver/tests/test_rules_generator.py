@@ -197,6 +197,14 @@ class TestRulesGeneratorScenarios(unittest.TestCase):
         scenario = "multiple_provides_1_installed.yaml"
         self._compute_rules(scenario)
 
+    def test_replace_scenario1(self):
+        scenario = "replace_scenario1.yaml"
+        self._compute_rules(scenario)
+
+    def test_replace_scenario2(self):
+        scenario = "replace_scenario2.yaml"
+        self._compute_rules(scenario)
+
     def test_single_dependency_simple(self):
         scenario = "single_dependency_simple.yaml"
         self._compute_rules(scenario)
@@ -208,12 +216,3 @@ class TestRulesGeneratorScenarios(unittest.TestCase):
     def test_single_dependency_multiple_provides(self):
         scenario = "single_dependency_multiple_provides.yaml"
         self._compute_rules(scenario)
-
-    def test_replace_scenario1(self):
-        scenario = "replace_scenario1.yaml"
-        self._compute_rules(scenario)
-
-    def test_replace_scenario2(self):
-        scenario = "replace_scenario2.yaml"
-        self._compute_rules(scenario)
-

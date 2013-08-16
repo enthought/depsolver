@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.errors \
     import \
-        UndefinedDecision
+        DepSolverError, UndefinedDecision
 from depsolver.package \
     import \
         PackageInfo

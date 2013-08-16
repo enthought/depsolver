@@ -159,7 +159,6 @@ class TestRulesGeneratorScenarios(unittest.TestCase):
             fp.close()
 
         scenario = RulesGeneratorScenario.from_yaml(filename)
-        scenario.to_php("yo.php")
         rules = [str(r) for r in scenario.compute_rules()]
 
         self.assertEqual(r_rules, rules)

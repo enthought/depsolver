@@ -108,7 +108,8 @@ class PackageRule(HasTraits):
     @property
     def rule_hash(self):
         # The exact rule hash algorithm is copied from composer
-        return hashlib.md5(",".join(str(i) for i in self.literals)).hexdigest()[:5]
+        data = ",".join(str(i) for i in self.literals)
+        return hashlib.md5(data.encode('ascii')).hexdigest()[:5]
 
     def is_equivalent(self, other):
         """Two rules are considered equivalent if they have the same

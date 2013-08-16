@@ -23,6 +23,8 @@ class _Job(HasTraits):
                                    requirement=requirement, **kw)
 
     def __eq__(self, other):
+        if other is None:
+            return False
         if len(self.packages) != len(other.packages):
             return False
         else:

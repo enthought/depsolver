@@ -180,4 +180,8 @@ class PackageInfo(HasTraits):
     def __eq__(self, other):
         return self.name == other.name and self.version == other.version \
                 and self.provides == other.provides \
-                and self.dependencies == other.dependencies
+                and self.dependencies == other.dependencies \
+                and self.id == other.id
+
+    def __hash__(self):
+        return hash("%s%d" % (str(self), self.id))

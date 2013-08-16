@@ -1,5 +1,6 @@
 import collections
-import itertools
+
+import six
 
 from depsolver.bundled.traitlets \
     import \
@@ -108,7 +109,7 @@ class RulesGenerator(HasTraits):
         """
         jobs = self.request.jobs
 
-        for package in self.installed_map.itervalues():
+        for package in six.itervalues(self.installed_map):
             self._add_package_rules(package)
             self._add_updated_packages_rules(package)
 

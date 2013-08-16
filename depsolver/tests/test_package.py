@@ -64,10 +64,16 @@ class TestPackageInfo(unittest.TestCase):
 
     def test_repr(self):
         package = PackageInfo(name="numpy", version=V("1.3.0"))
-        self.assertEqual(repr(package), "PackageInfo(u'numpy-1.3.0')")
+        if six.PY3:
+            self.assertEqual(repr(package), "PackageInfo('numpy-1.3.0')")
+        else:
+            self.assertEqual(repr(package), "PackageInfo(u'numpy-1.3.0')")
 
         package = PackageInfo(name="numpy", version=V("1.6.0"), dependencies=[R("mkl >= 10.3.0")])
-        self.assertEqual(repr(package), "PackageInfo(u'numpy-1.6.0; depends (mkl >= 10.3.0)')")
+        if six.PY3:
+            self.assertEqual(repr(package), "PackageInfo('numpy-1.6.0; depends (mkl >= 10.3.0)')")
+        else:
+            self.assertEqual(repr(package), "PackageInfo(u'numpy-1.6.0; depends (mkl >= 10.3.0)')")
 
     def test_set_repository(self):
         package = PackageInfo(name="numpy", version=V("1.3.0"))

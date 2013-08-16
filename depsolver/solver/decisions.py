@@ -3,100 +3,125 @@ import collections
 from depsolver.compat \
     import \
         OrderedDict
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Dict, Instance
 from depsolver.errors \
     import \
-        DepSolverError, UndefinedDecision
+        DepSolverError
 
-class DecisionsSet(object):
+from depsolver.pool \
+    import \
+        Pool
+
+Decision = collections.namedtuple("Decision", ["literal", "reason"])
+
+class DecisionsSet(HasTraits):
     """A DecisionsSet instance keeps track of decided literals (and the
     rational for each decision), and can infer new literals depending on
     their type."""
-    def __init__(self, pool):
-        self.pool = pool
-        self._decision_map = collections.OrderedDict()
-        self._decision_queue = {}
+    pool = Instance(Pool)
 
-    def inference_rule(self, literal):
-        """Returns the reason/why for the given literal inference."""
-        decision = self._decision_queue.get(literal.name, None)
-        if decision is not None:
-            return decision
-        else:
-            raise UndefinedDecision("literal %s not decided" % literal.name)
+    _decision_map = Instance(OrderedDict)
+    _decision_queue = Instance(collections.deque)
 
-    def infer(self, literal, why):
-        """Set the decision set such as it satisfies the given literal.
+    def __init__(self, pool, **kw):
+        super(DecisionsSet, self).__init__(self, pool=pool, **kw)
+        self._decision_map = OrderedDict()
+        self._decision_queue = collections.deque()
 
-        For any undecided literal::
-
-            decisision.infer(literal, "some string")
-
-        means the following is True::
-
-            decisions.satisfies(literal)
-
-        Parameter
-        ---------
-        literal: Literal
-            a literal object
-        why: str
-            An explanation for the decision
+    def decide(self, literal, level, why):
         """
-        self._add_decision(literal)
-        self._decision_queue[literal.name] = why
-
-    def is_decided(self, literal):
-        """Return true if the given literal has already been inferred."""
-        return literal.name in self._decision_map
-
-    def is_unit(self, rule):
-        return rule.is_unit(self._decision_map)
-
-    def items(self):
-        return self._decision_map.items()
-
-    def satisfies(self, literal):
-        """Return True if the literal has been decided and is satisfied
-        under the current decision set.
-
-        A literal is satisfied iif it is a Not literal and decided to False
-        or a Literal and decided to True. An undecided literal is always
-        unsatisfied.
+        Add the given literal to the decision set at the given level.
 
         Parameters
         ----------
-        literal: Literal
-            A literal instance
+        literal: int
+            Package id
+        level: int
+            Level
+        why: str
+            Rational for the decision
         """
-        if self.is_decided(literal):
-            if isinstance(literal, Not):
-                return not self._decision_map[literal.name]
+        self._add_decision(literal, level)
+        self._decision_queue.append(Decision(literal, why))
+
+    def satisfy(self, literal):
+        """
+        Return True if ths given literal is satisfied
+        """
+        package_id = abs(literal)
+        positive_case = literal > 0 and package_id in self._decision_map \
+                and self._decision_map[package_id] > 0
+        negative_case = literal < 0 and package_id in self._decision_map \
+                and self._decision_map[package_id] < 0
+        return positive_case or negative_case
+
+    def conflict(self, literal):
+        """
+        Return True if the given literal conflicts with the decision set.
+        """
+        package_id = abs(literal)
+
+        positive_case = literal > 0 and package_id in self._decision_map \
+                and self._decision_map[package_id] < 0
+        negative_case = literal < 0 and package_id in self._decision_map \
+                and self._decision_map[package_id] > 0
+        return positive_case or negative_case
+
+    def is_decided(self, literal):
+        """
+        Return True if the given literal has been decided at any level.
+        """
+        return self._decision_map.get(abs(literal), 0) != 0
+
+    def is_undecided(self, literal):
+        """
+        Return True if the given literal has not been decided at any level.
+        """
+        return self._decision_map.get(abs(literal), 0) == 0
+
+    def is_decided_install(self, literal):
+        package_id = abs(literal)
+        return self._decision_map.get(package_id, 0) > 0
+
+    def decision_level(self, literal):
+        """
+        Returns the decision level of the given literal.
+
+        If the literal is not decided yet, returns 0.
+        """
+        package_id = abs(literal)
+        if package_id in self._decision_map:
+            return abs(self._decision_map[package_id])
+        else:
+            return 0
+
+    #------------
+    # Private API
+    #------------
+    def _add_decision(self, literal, level):
+        package_id = abs(literal)
+
+        if package_id in self._decision_map:
+            previous_decision = self._decision_map[package_id]
+            literal_string = self.pool.id_to_string(package_id)
+            package = self.pool.package_by_id(package_id)
+
+            raise DepSolverError("Trying to decide %s on level %d, even though "
+                    "%s was previously decided as %d" % (literal_string, level,
+                        package, previous_decision))
+        else:
+            if literal > 0:
+                self._decision_map[package_id] = level
             else:
-                return self._decision_map[literal.name]
-        else:
-            return False
+                self._decision_map[package_id] = -level
 
-    def popitem(self):
-        """Pop the last decision made."""
-        literal_name, decision = self._decision_map.popitem()
-        del self._decision_queue[literal_name]
-        return literal_name, decision
-
-    def satisfies_or_none(self, rule):
-        return rule.satisfies_or_none(self._decision_map)
-
-    def _add_decision(self, literal):
-        literal_name = literal.name
-        if literal_name in self._decision_map:
-            raise DepSolverError("literal name %s already decided !" % literal_name)
-        if isinstance(literal, Not):
-            self._decision_map[literal_name] = False
-        else:
-            self._decision_map[literal_name] = True
-
+    #-----------------
     # Mapping protocol
-    def __contains__(self, literal_name):
-        return literal_name in self._decision_map
+    #-----------------
+    def __contains__(self, literal):
+        return literal in self._decision_map
 
     def __len__(self):
         return len(self._decision_map)

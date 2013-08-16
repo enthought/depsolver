@@ -2,6 +2,9 @@ import collections
 
 import six
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.bundled.traitlets \
     import \
         HasTraits, Dict, Enum, Instance, List, Long, Set, Unicode
@@ -88,12 +91,12 @@ class RulesGenerator(HasTraits):
     policy = Instance(DefaultPolicy)
     request = Instance(Request)
 
-    installed_map = Instance(collections.OrderedDict)
+    installed_map = Instance(OrderedDict)
     added_package_ids = Set()
 
     def __init__(self, pool, request, installed_map=None, policy=None, **kw):
         if installed_map is None:
-            installed_map = collections.OrderedDict()
+            installed_map = OrderedDict()
         if policy is None:
             policy = DefaultPolicy()
 

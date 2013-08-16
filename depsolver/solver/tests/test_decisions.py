@@ -1,4 +1,9 @@
-import unittest
+import six
+
+if six.PY3:
+    import unittest
+else:
+    import unittest2 as unittest
 
 from depsolver.errors \
     import \

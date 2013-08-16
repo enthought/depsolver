@@ -1,4 +1,4 @@
-from collections \
+from depsolver.compat \
     import \
         OrderedDict
 

@@ -9,6 +9,9 @@ import yaml
 from depsolver._package_utils \
     import \
         parse_package_full_name
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.package \
     import \
         parse_package_string, PackageInfo
@@ -150,7 +153,7 @@ class RulesGeneratorScenario(HasTraits):
         return cls(_base_scenario=base_scenario)
 
     def compute_rules(self):
-        installed_map = collections.OrderedDict()
+        installed_map = OrderedDict()
         for package in self.installed_repository.iter_packages():
             installed_map[package.id] = package
         rules_generator = RulesGenerator(self.pool, self.request, installed_map)

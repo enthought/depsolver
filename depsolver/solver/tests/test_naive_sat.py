@@ -1,7 +1,13 @@
-import collections
+import six
 
-import unittest
+if six.PY3:
+    import unittest
+else:
+    import unittest2 as unittest
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.solver.naive_sat \
     import \
         is_satisfiable

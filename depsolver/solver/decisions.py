@@ -1,5 +1,8 @@
 import collections
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.errors \
     import \
         DepSolverError, UndefinedDecision

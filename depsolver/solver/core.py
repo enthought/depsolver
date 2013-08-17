@@ -87,13 +87,11 @@ class Solver(HasTraits):
             rule_index += 1
 
             if not rule.is_assertion or not rule.enabled:
-                #print "\trule {} is an assertion or disabled".format(rule)
                 continue
 
             literals = rule.literals
             literal = literals[0]
 
-            #print "\tlooking at literal {}".format(literal)
             if not decisions.is_decided(abs(literal)):
                 decisions.decide(literal, 1, rule)
                 continue;

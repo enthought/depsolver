@@ -33,9 +33,6 @@ from depsolver.solver.decisions \
 from depsolver.solver.rules_generator \
     import \
         RulesGenerator
-from depsolver.solver.rules_watch_graph \
-    import \
-        RulesWatchGraph
 from depsolver.solver.core \
     import \
         Solver

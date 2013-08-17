@@ -94,9 +94,7 @@ class RulesGenerator(HasTraits):
     installed_map = Instance(OrderedDict)
     added_package_ids = Set()
 
-    def __init__(self, pool, request, installed_map=None, policy=None, **kw):
-        if installed_map is None:
-            installed_map = OrderedDict()
+    def __init__(self, pool, request, installed_map, policy=None, **kw):
         if policy is None:
             policy = DefaultPolicy()
 

@@ -7,6 +7,9 @@ else:
 
 import os.path as op
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.package \
     import \
         PackageInfo
@@ -119,7 +122,7 @@ class TestCreateClauses(unittest.TestCase):
         request = Request(self.pool)
         request.install(req)
 
-        rules_generator = RulesGenerator(self.pool, request)
+        rules_generator = RulesGenerator(self.pool, request, OrderedDict())
         dependencies = self.pool.what_provides(self.numpy_1_6_0.dependencies[0])
         rule = rules_generator._create_dependency_rule(self.numpy_1_6_0, dependencies, None)
 

@@ -111,6 +111,10 @@ class PackageRule(HasTraits):
         data = ",".join(str(i) for i in self.literals)
         return hashlib.md5(data.encode('ascii')).hexdigest()[:5]
 
+    @property
+    def is_assertion(self):
+        return len(self.literals) == 1
+
     def is_equivalent(self, other):
         """Two rules are considered equivalent if they have the same
         literals."""

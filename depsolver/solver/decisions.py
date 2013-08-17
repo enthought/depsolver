@@ -1,5 +1,7 @@
 import collections
 
+import six
+
 from depsolver.compat \
     import \
         OrderedDict
@@ -116,6 +118,12 @@ class DecisionsSet(HasTraits):
                 self._decision_map[package_id] = level
             else:
                 self._decision_map[package_id] = -level
+
+    def at_offset(self, offset):
+        return self._decision_queue[queue_offset]
+
+    def is_offset_valid(self, offset):
+        return offset >= 0 and offset < len(self._decision_queue)
 
     #-----------------
     # Mapping protocol

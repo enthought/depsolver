@@ -71,7 +71,6 @@ class Solver(HasTraits):
         installed_map = self._setup_install_map(request.jobs)
 
         decisions = DecisionsSet(self.pool)
-        watch_graph = RulesWatchGraph()
 
         rules_generator = RulesGenerator(self.pool, request, installed_map)
         rules = list(rules_generator.iter_rules())

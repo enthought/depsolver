@@ -40,51 +40,52 @@ class Solver(HasTraits):
     pool = Instance(Pool)
     installed_repository = Instance(Repository)
 
+    installed_map = Instance(OrderedDict)
+    update_map = Instance(OrderedDict)
+
     def __init__(self, pool, installed_repository, **kw):
         policy = DefaultPolicy()
+        installed_map = OrderedDict()
+        update_map = OrderedDict()
         super(Solver, self).__init__(self, policy=policy, pool=pool,
-                installed_repository=installed_repository, **kw)
+                installed_repository=installed_repository,
+                installed_map=installed_map,
+                update_map=update_map, **kw)
 
     def solve(self, request):
-        decision, rules = self._prepare_solver(request)
-        self._make_assertion_rules_decisions(decisions, rules)
+        decisions, rules_set = self._prepare_solver(request)
+        self._make_assertion_rules_decisions(decisions, rules_set)
 
         return decisions
 
     def _setup_install_map(self, jobs):
-        installed_map = OrderedDict()
         for package in self.installed_repository.iter_packages():
-            installed_map[package.id] = package
+            self.installed_map[package.id] = package
 
         for job in jobs:
             if job.job_type == "update":
-                raise NotImplementedError()
+                for package in job.packages:
+                    if package.id in self.installed_map:
+                        self.update_map[package.id] = True
             elif job.job_type == "upgrade":
-                raise NotImplementedError()
+                for package in self.installed_map:
+                    self.update_map[package.id] = True
             elif job.job_type == "install":
                 if len(job.packages) < 1:
                     raise NotImplementedError()
 
-        return installed_map
-
     def _prepare_solver(self, request):
-        installed_map = self._setup_install_map(request.jobs)
+        self._setup_install_map(request.jobs)
 
         decisions = DecisionsSet(self.pool)
 
-        rules_generator = RulesGenerator(self.pool, request, installed_map)
-        rules = list(rules_generator.iter_rules())
+        rules_generator = RulesGenerator(self.pool, request, self.installed_map)
+        return decisions, rules_generator.iter_rules()
 
-        return decisions, rules
-
-    def _make_assertion_rules_decisions(self, decisions, rules):
+    def _make_assertion_rules_decisions(self, decisions, rules_generator):
         decision_start = len(decisions) - 1
 
-        rule_index = 0
-        while rule_index < len(rules):
-            rule = rules[rule_index]
-            rule_index += 1
-
+        for rule in rules_generator:
             if not rule.is_assertion or not rule.enabled:
                 continue
 

@@ -27,6 +27,14 @@ class DecisionsSet(HasTraits):
     _decision_map = Instance(OrderedDict)
     _decision_queue = Instance(collections.deque)
 
+    @property
+    def last_literal(self):
+        return self._decision_queue[-1].literal
+
+    @property
+    def last_reason(self):
+        return self._decision_queue[-1].reason
+
     def __init__(self, pool, **kw):
         super(DecisionsSet, self).__init__(self, pool=pool, **kw)
         self._decision_map = OrderedDict()
@@ -99,6 +107,16 @@ class DecisionsSet(HasTraits):
         else:
             return 0
 
+    def at_offset(self, offset):
+        return self._decision_queue[queue_offset]
+
+    def is_offset_valid(self, offset):
+        return offset >= 0 and offset < len(self._decision_queue)
+
+    def revert_last(self):
+        self._decision_map[abs(self.last_literal)] = 0
+        self._decision_queue.pop()
+
     #------------
     # Private API
     #------------
@@ -119,17 +137,11 @@ class DecisionsSet(HasTraits):
             else:
                 self._decision_map[package_id] = -level
 
-    def at_offset(self, offset):
-        return self._decision_queue[queue_offset]
-
-    def is_offset_valid(self, offset):
-        return offset >= 0 and offset < len(self._decision_queue)
-
-    #-----------------
-    # Mapping protocol
-    #-----------------
+    #------------------
+    # Sequence protocol
+    #------------------
     def __contains__(self, literal):
         return literal in self._decision_map
 
     def __len__(self):
-        return len(self._decision_map)
+        return len(self._decision_queue)

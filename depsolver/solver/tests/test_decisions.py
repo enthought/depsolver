@@ -30,8 +30,12 @@ class TestDecisionsSet(unittest.TestCase):
         self.mkl_10_3_0 = P("mkl-10.3.0")
         self.mkl_11_0_0 = P("mkl-11.0.0")
 
+        self.numpy_1_6_1 = P("numpy-1.6.1; depends (mkl)")
+        self.numpy_1_7_0 = P("numpy-1.7.0; depends (mkl)")
+
         repository = Repository([self.mkl_10_1_0, self.mkl_10_2_0,
-            self.mkl_10_3_0, self.mkl_11_0_0])
+            self.mkl_10_3_0, self.mkl_11_0_0, self.numpy_1_6_1,
+            self.numpy_1_7_0])
         self.pool = Pool([repository])
 
     def test__add_decision(self):
@@ -121,19 +125,23 @@ class TestDecisionsSet(unittest.TestCase):
         self.assertEqual(decisions.decision_level(-package.id), r_level)
         self.assertEqual(decisions.decision_level(package.id + 1), 0)
 
-    @unittest.expectedFailure
-    def test_pop(self):
-        pool = Pool([Repository([mkl_10_1_0, mkl_10_2_0, mkl_10_3_0, mkl_11_0_0])])
+    def test_revert_last(self):
+        r_level = 1
 
-        literal = PackageInfoLiteral.from_string("mkl-11.0.0", pool)
-        another_literal = PackageInfoLiteral.from_string("mkl-10.3.0", pool)
+        decisions = DecisionsSet(self.pool)
+        decisions.decide(self.mkl_10_1_0.id, r_level, "because")
+        decisions.decide(self.numpy_1_7_0.id, r_level, "because because")
 
-        decisions = DecisionsSet(pool)
-        decisions.infer(literal, "dummy")
-        decisions.infer(another_literal, "dummy")
         self.assertEqual(len(decisions), 2)
-        decisions.popitem()
-        self.assertEqual(len(decisions), 1)
-        decisions.popitem()
-        self.assertEqual(len(decisions), 0)
+        self.assertTrue(decisions.is_decided(self.mkl_10_1_0.id))
+        self.assertTrue(decisions.is_decided(self.numpy_1_7_0.id))
+        self.assertEqual(decisions.last_literal, self.numpy_1_7_0.id)
+        self.assertEqual(decisions.last_reason, "because because")
 
+        decisions.revert_last()
+
+        self.assertEqual(len(decisions), 1)
+        self.assertTrue(decisions.is_decided(self.mkl_10_1_0.id))
+        self.assertTrue(decisions.is_undecided(self.numpy_1_7_0.id))
+        self.assertTrue(decisions.last_literal, self.mkl_10_1_0.id)
+        self.assertTrue(decisions.last_reason, "because because")

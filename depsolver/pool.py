@@ -5,7 +5,7 @@ from depsolver.bundled.traitlets \
         HasTraits, Dict, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
-        MissingPackageInfoInPool
+        DepSolverError, MissingPackageInfoInPool
 from depsolver.package \
     import \
         PackageInfo
@@ -15,6 +15,9 @@ from depsolver.repository \
 from depsolver.requirement \
     import \
         Requirement
+from depsolver.utils \
+    import \
+        CachedScheduler
 
 MATCH_NONE = 0
 MATCH_NAME = 1
@@ -35,8 +38,14 @@ class Pool(HasTraits):
 
     _id = Long(1)
 
+    _repository_by_name = Instance(collections.defaultdict)
+    _scheduler = Instance(CachedScheduler)
+
     def __init__(self, repositories=None, **kw):
-        super(Pool, self).__init__(self, **kw)
+        scheduler = CachedScheduler()
+        repository_by_name = collections.defaultdict(list)
+        super(Pool, self).__init__(self, _scheduler=scheduler,
+                _repository_by_name=repository_by_name, **kw)
         if repositories is None:
             repositories = []
 
@@ -60,6 +69,7 @@ class Pool(HasTraits):
             repository to add
         """
         self.repositories.append(repository)
+        self._repository_by_name[repository.name].append(repository)
 
         for package in repository.iter_packages():
             package.id = self._id
@@ -194,3 +204,30 @@ class Pool(HasTraits):
             return "+" + str(package)
         else:
             return "-" + str(package)
+
+    #------------------------
+    # Repository priority API
+    #------------------------
+    def set_repository_order(self, repository_name, after=None, before=None):
+        candidates = self._repository_by_name[repository_name]
+        if len(candidates) < 1:
+            raise DepSolverError("No repository with name '%s'" % (repository_name,))
+        else:
+            self._scheduler.set_constraints(repository_name, after, before)
+
+    def repository_priority(self, repository):
+        """
+        Returns the priority of a repository.
+
+        If no constraint has been set up for the repository, its priority is 0
+        (the lowest).
+
+        Parameters
+        ----------
+        repository: Repository
+            The repository to compute the priority of.
+        """
+        if repository.name in self._repository_by_name:
+            return self._scheduler.compute_priority().get(repository.name, 0)
+        else:
+            raise DepSolverError("Unknown repository name '%s'" % (repository.name,))

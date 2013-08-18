@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.errors \
     import \
-        MissingPackageInfoInPool
+        DepSolverError, MissingPackageInfoInPool
 
 from depsolver.package \
     import \
@@ -140,3 +140,44 @@ class TestPool(unittest.TestCase):
         self.assertEqual(set(pool.what_provides(R("sklearn"))), set([sklearn]))
         self.assertEqual(set(pool.what_provides(R("scikit_learn"))), set([sklearn, scikit_learn]))
 
+    def test_priority_simple(self):
+        paid_repo = Repository([
+            self.mkl_10_1_0,
+            self.mkl_10_2_0,
+            self.mkl_10_3_0,
+            self.mkl_11_0_0,
+            self.numpy_1_6_0,
+            self.numpy_1_7_0,
+        ], name="paid")
+        free_repo = Repository([self.nomkl_numpy_1_7_0], "free")
+        pool = Pool([paid_repo, free_repo])
+        pool.set_repository_order("free", before="paid")
+
+        self.assertEqual(pool.repository_priority(paid_repo), 1)
+        self.assertEqual(pool.repository_priority(free_repo), 0)
+
+    def test_priority_not_registered(self):
+        repo = Repository()
+        pool = Pool()
+
+        self.assertRaises(DepSolverError, lambda: pool.repository_priority(repo))
+        self.assertRaises(DepSolverError, lambda: pool.set_repository_order(repo, "dummy"))
+
+    def test_priority_no_name(self):
+        paid_repo = Repository([
+            self.mkl_10_1_0,
+            self.mkl_10_2_0,
+            self.mkl_10_3_0,
+            self.mkl_11_0_0,
+            self.numpy_1_7_0,
+        ], name="paid")
+        free_repo = Repository([self.nomkl_numpy_1_7_0], "free")
+        another_repo = Repository([self.numpy_1_6_1], "another_repo")
+        another_repo_wo_name = Repository([self.numpy_1_6_0])
+        pool = Pool([paid_repo, free_repo, another_repo, another_repo_wo_name])
+        pool.set_repository_order("free", before="paid")
+
+        self.assertEqual(pool.repository_priority(paid_repo), 1)
+        self.assertEqual(pool.repository_priority(free_repo), 0)
+        self.assertEqual(pool.repository_priority(another_repo), 0)
+        self.assertEqual(pool.repository_priority(another_repo_wo_name), 0)

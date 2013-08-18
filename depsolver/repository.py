@@ -2,7 +2,7 @@ import collections
 
 from depsolver.bundled.traitlets \
     import \
-        HasTraits, Instance, List
+        HasTraits, Instance, List, Unicode
 from depsolver.package \
     import \
         PackageInfo
@@ -20,10 +20,15 @@ class Repository(HasTraits):
     """
     packages = List(Instance(PackageInfo))
 
-    def __init__(self, packages=None, **kw):
-        super(Repository, self).__init__(**kw)
+    name = Unicode()
+
+    def __init__(self, packages=None, name="", **kw):
+        super(Repository, self).__init__(name=name, **kw)
         for p in packages or []:
             self.add_package(p)
+
+    def __len__(self):
+        return len(self.packages)
 
     def iter_packages(self):
         """Return an iterator over every package contained in this repo."""

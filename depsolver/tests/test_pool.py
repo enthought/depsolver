@@ -153,8 +153,8 @@ class TestPool(unittest.TestCase):
         pool = Pool([paid_repo, free_repo])
         pool.set_repository_order("free", before="paid")
 
-        self.assertEqual(pool.repository_priority(paid_repo), -1)
-        self.assertEqual(pool.repository_priority(free_repo), 0)
+        self.assertEqual(pool.repository_priority(paid_repo), 0)
+        self.assertEqual(pool.repository_priority(free_repo), -1)
 
     def test_priority_not_registered(self):
         repo = Repository()
@@ -177,7 +177,7 @@ class TestPool(unittest.TestCase):
         pool = Pool([paid_repo, free_repo, another_repo, another_repo_wo_name])
         pool.set_repository_order("free", before="paid")
 
-        self.assertEqual(pool.repository_priority(paid_repo), -1)
-        self.assertEqual(pool.repository_priority(free_repo), 0)
-        self.assertEqual(pool.repository_priority(another_repo), 0)
-        self.assertEqual(pool.repository_priority(another_repo_wo_name), 0)
+        self.assertEqual(pool.repository_priority(paid_repo), 0)
+        self.assertEqual(pool.repository_priority(free_repo), -1)
+        self.assertEqual(pool.repository_priority(another_repo), -1)
+        self.assertEqual(pool.repository_priority(another_repo_wo_name), -1)

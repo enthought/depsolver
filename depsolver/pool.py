@@ -219,9 +219,9 @@ class Pool(HasTraits):
         """
         Returns the priority of a repository.
 
-        Priorities are in the ]-inf, 0] integer range, and the ordering is
-        similar to the Unix nice system: the lower the priority number, the
-        more a repository has priority over other repositories.
+        Priorities are in the ]-inf, 0] integer range, and the ordering is the
+        same as integers: the lower the priority number, the less a repository
+        has priority over other repositories.
 
         If no constraint has been set up for the repository, its priority is 0.
 
@@ -231,7 +231,8 @@ class Pool(HasTraits):
             The repository to compute the priority of.
         """
         if repository.name in self._repository_by_name:
+            priorities = self._scheduler.compute_priority()
             # We return a negative number to follow Composer convention.
-            return -self._scheduler.compute_priority().get(repository.name, 0)
+            return priorities.get(repository.name, 0) - (len(priorities) - 1)
         else:
             raise DepSolverError("Unknown repository name '%s'" % (repository.name,))

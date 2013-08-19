@@ -122,18 +122,6 @@ class PackageRule(HasTraits):
             return NotImplemented
         return self.literals == other.literals
 
-    def __or__(self, other):
-        if isinstance(other, PackageInfoRule):
-            literals = set(self.literals)
-            literals.update(other.literals)
-            return PackageInfoRule(literals, self._pool)
-        elif isinstance(other, Literal):
-            literals = set([other])
-            literals.update(self.literals)
-            return PackageInfoRule(literals, self._pool)
-        else:
-            raise TypeError("unsupported type %s" % type(other))
-
     def __str__(self):
         return "(%s)" % " | ".join(self.pool.id_to_string(l) for l in self.literals)
 

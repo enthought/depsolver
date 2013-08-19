@@ -89,6 +89,45 @@ class DefaultPolicy(object):
 
         return packages
 
+    def cmp_by_priority_prefer_installed(self, pool, installed_map, a, b,
+            required_package=None, ignore_replace=False):
+        """
+        Comparison function that gives priority to installed packages first, and
+        then across repository priorities.
+        """
+        if id(a.repository) == id(b.repository):
+            if not ignore_replace:
+                if self._replaces(a, b):
+                    return 1
+                if self._replaces(b, a):
+                    return -1
+
+            if a.id > b.id:
+                return 1
+            elif a.id < b.id:
+                return -1
+            else:
+                return 0
+        else:
+            if a.id in installed_map:
+                return -1
+            if b.id in installed_map:
+                return 1
+
+            if self._priority(pool, a) > self._priority(pool, b):
+                return -1
+            else:
+                return 1
+
+    def _priority(self, pool, package):
+        return pool.repository_priority(package.repository)
+
+    def _replaces(self, source, target):
+        for replace in source.replaces:
+            if replace.name == target.name:
+                return True
+        return False
+
 def prune_to_best_version(pool, package_ids):
     # Assume package_ids is already sorted (from max to min)
     if len(package_ids) < 1:

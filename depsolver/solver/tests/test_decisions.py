@@ -145,3 +145,13 @@ class TestDecisionsSet(unittest.TestCase):
         self.assertTrue(decisions.is_undecided(self.numpy_1_7_0.id))
         self.assertTrue(decisions.last_literal, self.mkl_10_1_0.id)
         self.assertTrue(decisions.last_reason, "because because")
+
+    def test_iter(self):
+        """Check we iter from last to first."""
+        r_ids = [self.mkl_10_2_0.id, self.mkl_10_1_0.id]
+
+        decisions = DecisionsSet(self.pool)
+        decisions.decide(self.mkl_10_1_0.id, 1, "because")
+        decisions.decide(self.mkl_10_2_0.id, 2, "because because")
+
+        self.assertEqual(list(decision.literal for decision in decisions), r_ids)

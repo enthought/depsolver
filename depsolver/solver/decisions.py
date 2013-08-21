@@ -24,7 +24,10 @@ class DecisionsSet(HasTraits):
     their type."""
     pool = Instance(Pool)
 
+    # Package id -> decision level mapping
     _decision_map = Instance(OrderedDict)
+
+    # Queue of Decision instances
     _decision_queue = Instance(collections.deque)
 
     @property
@@ -108,7 +111,7 @@ class DecisionsSet(HasTraits):
             return 0
 
     def at_offset(self, offset):
-        return self._decision_queue[queue_offset]
+        return self._decision_queue[offset]
 
     def is_offset_valid(self, offset):
         return offset >= 0 and offset < len(self._decision_queue)
@@ -145,3 +148,11 @@ class DecisionsSet(HasTraits):
 
     def __len__(self):
         return len(self._decision_queue)
+
+    #------------------
+    # Iterator protocol
+    #------------------
+    # We return a reversed iterator to follow composer behavior, not sure about
+    # the rationale
+    def __iter__(self):
+        return reversed(self._decision_queue)

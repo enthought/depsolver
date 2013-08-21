@@ -234,7 +234,7 @@ class RulesGenerator(HasTraits):
                     dependency_candidates = self.pool.what_provides(dependency)
                     rule = self._create_dependency_rule(p,
                             dependency_candidates, "package_requires",
-                            "%s requires %s" % (p.name, str(dependency)))
+                            str(dependency))
                     self._add_rule(rule, "package")
 
                     for candidate in dependency_candidates:

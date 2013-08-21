@@ -149,7 +149,7 @@ class TestRulesSet(unittest.TestCase):
                                  P("scipy-0.12.0; depends (numpy >= 1.7.0)")])
         pool = Pool([repository])
 
-        rule = PackageRule(pool, [1, 2], "job_install")
+        rule = PackageRule(pool, [1, 2], "job_install", "scipy")
 
         rules_set = RulesSet()
         rules_set.add_rule(rule, "package")

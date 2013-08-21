@@ -8,7 +8,10 @@ from depsolver.bundled.traitlets \
         HasTraits, Bool, Enum, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
-        MissingPackageInfoInPool
+        DepSolverError, MissingPackageInfoInPool
+from depsolver._package_utils \
+    import \
+        is_valid_package_name
 from depsolver.package \
     import \
         PackageInfo
@@ -100,6 +103,17 @@ class PackageRule(HasTraits):
         return cls(pool, literals, reason, reason_details, job, id)
 
     def __init__(self, pool, literals, reason, reason_details="", job=None, id=-1, **kw):
+        if reason == "job_install":
+            if not is_valid_package_name(reason_details):
+                raise DepSolverError(
+                        "reason_details must be a valid package name for "
+                        "'job_install' rule")
+        elif reason == "package_requires":
+            try:
+                Requirement.from_string(reason_details)
+            except Exception:
+                raise DepSolverError("Invalid requirement string '%s'" % (reason_details,))
+
         literals = sorted(literals)
         super(PackageRule, self).__init__(pool=pool, literals=literals,
                 reason=reason, reason_details=reason_details, job=job, id=id,
@@ -114,6 +128,15 @@ class PackageRule(HasTraits):
     @property
     def is_assertion(self):
         return len(self.literals) == 1
+
+    @property
+    def required_package_name(self):
+        if self.reason == "job_install":
+            return self.reason_data
+        elif self.reason == "package_requires":
+            return Requirement.from_string(self.reason_data)
+        else:
+            return ""
 
     def is_equivalent(self, other):
         """Two rules are considered equivalent if they have the same

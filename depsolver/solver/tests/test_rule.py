@@ -22,7 +22,7 @@ class TestPackageRule(unittest.TestCase):
                                  P("scipy-0.12.0; depends (numpy >= 1.7.0)")])
         pool = Pool([repository])
 
-        rule = PackageRule(pool, [1, 2], "job_install")
+        rule = PackageRule(pool, [1, 2], "job_install", "scipy")
 
         self.assertEqual(rule.enabled, True)
         self.assertEqual(rule.literals, [1, 2])
@@ -40,7 +40,7 @@ class TestPackageRule(unittest.TestCase):
 
         pool = Pool([Repository(remote_repository), Repository(installed_repository)])
 
-        rule = PackageRule.from_packages(pool, [mkl, i_mkl], "job_install")
+        rule = PackageRule.from_packages(pool, [mkl, i_mkl], "job_install", "numpy")
 
         self.assertEqual(rule.enabled, True)
         self.assertEqual(rule.literals, [mkl.id, i_mkl.id])
@@ -52,10 +52,10 @@ class TestPackageRule(unittest.TestCase):
                                  P("scipy-0.12.0; depends (numpy >= 1.7.0)")])
         pool = Pool([repository])
 
-        rule = PackageRule(pool, [1, 2], "job_install")
+        rule = PackageRule(pool, [1, 2], "job_install", "scipy")
 
         self.assertEqual(str(rule), "(+mkl-10.1.0 | +numpy-1.7.0)")
 
-        rule = PackageRule(pool, [-1, 2], "job_install")
+        rule = PackageRule(pool, [-1, 2], "job_install", "scipy")
 
         self.assertEqual(str(rule), "(-mkl-10.1.0 | +numpy-1.7.0)")

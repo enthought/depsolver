@@ -127,7 +127,9 @@ class Pool(HasTraits):
 
         for package in self._packages_by_name[requirement.name]:
             match = self.matches(package, requirement)
-            if match == MATCH_NAME:
+            if match == MATCH_NONE:
+                pass
+            elif match == MATCH_NAME:
                 name_match = True
             elif match == MATCH:
                 name_match = True

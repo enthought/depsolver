@@ -5,6 +5,11 @@ if six.PY3:
 else:
     import unittest2 as unittest
 
+import collections
+
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.package \
     import \
         PackageInfo
@@ -33,7 +38,7 @@ class TestDefaultPolicy(unittest.TestCase):
 
         queue = [self.mkl_10_3_0.id, self.mkl_11_0_0.id]
 
-        candidates = policy.prefered_package_ids(pool, {}, queue)
+        candidates = policy.select_preferred_packages(pool, {}, queue)
         self.assertEqual(list(candidates), [self.mkl_11_0_0.id])
 
     def test_simple_fulfilled_installed(self):
@@ -48,7 +53,7 @@ class TestDefaultPolicy(unittest.TestCase):
 
         queue = [p.id for p in [mkl_10_4_0, self.mkl_10_3_0, self.mkl_11_0_0]]
 
-        candidates = policy.prefered_package_ids(pool, {}, queue)
+        candidates = policy.select_preferred_packages(pool, {}, queue)
         self.assertEqual(list(candidates), [self.mkl_11_0_0.id])
 
         candidates = policy.prefered_package_ids(pool, {mkl_10_4_0.id: True}, queue)
@@ -67,10 +72,10 @@ class TestDefaultPolicy(unittest.TestCase):
 
         queue = [p.id for p in [mkl_10_4_0, self.mkl_10_3_0, self.mkl_11_0_0]]
 
-        candidates = policy.prefered_package_ids(pool, {}, queue)
+        candidates = policy.select_preferred_packages(pool, {}, queue)
         self.assertEqual(list(candidates), [self.mkl_11_0_0.id])
 
-        candidates = policy.prefered_package_ids(pool, {mkl_10_4_0.id: True}, queue)
+        candidates = policy.select_preferred_packages(pool, {mkl_10_4_0.id: True}, queue)
         self.assertEqual(list(candidates), [mkl_10_4_0.id, self.mkl_11_0_0.id])
 
     def test_cmp_by_priority_prefer_installed_same_repository_simple(self):
@@ -149,3 +154,112 @@ class TestDefaultPolicy(unittest.TestCase):
         r_sorted_packages = [scikits_0_12_0, sklearn_0_13_0]
 
         _assert_sort_by_priority(packages, r_sorted_packages)
+
+class TestSelectPreferredPackages(unittest.TestCase):
+    def setUp(self):
+        self.numpy_1_6_0 = P("numpy-1.6.0")
+        self.numpy_1_6_1 = P("numpy-1.6.1")
+        self.numpy_1_7_1 = P("numpy-1.7.1")
+        self.nomkl_numpy_1_6_0 = P("nomkl_numpy-1.6.0; replaces (numpy==1.6.0)")
+        self.nomkl_numpy_1_6_1 = P("nomkl_numpy-1.6.1; replaces (numpy==1.6.1)")
+        self.nomkl_numpy_1_7_1 = P("nomkl_numpy-1.7.1; replaces (numpy==1.7.1)")
+        self.mkl_numpy_1_6_1 = P("mkl_numpy-1.6.0; replaces (numpy==1.6.0)")
+        self.mkl_numpy_1_6_0 = P("mkl_numpy-1.6.1; replaces (numpy==1.6.1)")
+        self.mkl_numpy_1_7_1 = P("mkl_numpy-1.7.1; replaces (numpy==1.7.1)")
+
+
+    def test_simple(self):
+        """Test we select the most recent version across a list of same
+        packages with same name."""
+        packages = [self.numpy_1_6_0, self.numpy_1_6_1, self.numpy_1_7_1]
+        repository = Repository(packages)
+        pool = Pool([repository])
+
+        policy = DefaultPolicy()
+        selected_ids = policy.select_preferred_packages(pool, {}, [p.id for p in packages])
+
+        r_selected_ids = [self.numpy_1_7_1.id]
+        self.assertEqual(r_selected_ids, selected_ids)
+
+    def test_multiple_providers(self):
+        """
+        Test we select the most recent version across a list of different
+        packages providing the same package.
+        """
+        packages = [self.numpy_1_6_0, self.numpy_1_6_1, self.numpy_1_7_1,
+                    self.nomkl_numpy_1_6_0,
+                    self.nomkl_numpy_1_6_1,
+                    self.nomkl_numpy_1_7_1,
+                    self.mkl_numpy_1_6_0,
+                    self.mkl_numpy_1_6_1,
+                    self.mkl_numpy_1_7_1]
+        repository = Repository(packages)
+        pool = Pool([repository])
+
+        policy = DefaultPolicy()
+        selected_ids = policy.select_preferred_packages(pool, {},
+                [p.id for p in packages])
+
+        r_selected_ids = [self.numpy_1_7_1.id, self.nomkl_numpy_1_7_1.id, self.mkl_numpy_1_7_1.id]
+        self.assertEqual(r_selected_ids, selected_ids)
+
+class TestComputePreferredPackages(unittest.TestCase):
+    def setUp(self):
+        self.mkl_10_3_0 = P("mkl-10.3.0")
+        self.mkl_10_4_0 = P("mkl-10.4.0")
+        self.numpy_1_6_0 = P("numpy-1.6.0")
+        self.numpy_1_6_1 = P("numpy-1.6.1")
+        self.numpy_1_7_1 = P("numpy-1.7.1")
+        self.nomkl_numpy_1_6_0 = P("nomkl_numpy-1.6.0; replaces (numpy==1.6.0)")
+        self.nomkl_numpy_1_6_1 = P("nomkl_numpy-1.6.1; replaces (numpy==1.6.1)")
+        self.nomkl_numpy_1_7_1 = P("nomkl_numpy-1.7.1; replaces (numpy==1.7.1)")
+        self.mkl_numpy_1_6_1 = P("mkl_numpy-1.6.0; replaces (numpy==1.6.0)")
+        self.mkl_numpy_1_6_0 = P("mkl_numpy-1.6.1; replaces (numpy==1.6.1)")
+        self.mkl_numpy_1_7_1 = P("mkl_numpy-1.7.1; replaces (numpy==1.7.1)")
+
+
+    def test_multiple_providers(self):
+        """Test package queues with different packages providing the same
+        package."""
+        packages = [self.numpy_1_6_0, self.numpy_1_6_1, self.numpy_1_7_1,
+                    self.nomkl_numpy_1_6_0,
+                    self.nomkl_numpy_1_6_1,
+                    self.nomkl_numpy_1_7_1]
+        repository = Repository(packages)
+        pool = Pool([repository])
+
+        policy = DefaultPolicy()
+        package_queues = policy._compute_prefered_packages_installed_first(
+                pool, {}, [p.id for p in packages])
+
+        r_package_queues = OrderedDict()
+        r_package_queues[u"numpy"] = collections.deque([
+            self.numpy_1_6_0.id, self.numpy_1_6_1.id, self.numpy_1_7_1.id])
+        r_package_queues[u"nomkl_numpy"] = collections.deque([
+            self.nomkl_numpy_1_6_0.id, self.nomkl_numpy_1_6_1.id,
+            self.nomkl_numpy_1_7_1.id])
+
+        self.assertEqual(r_package_queues, package_queues)
+
+    def test_installed_first(self):
+        """
+        Test installed version come first, even before higher version.
+        """
+        packages = [self.mkl_10_3_0,
+                    self.mkl_10_4_0]
+        installed_packages = [P("mkl-10.4.0")]
+        repository = Repository(packages)
+        installed_repository = Repository(installed_packages)
+        pool = Pool([repository, installed_repository])
+        policy = DefaultPolicy()
+
+        installed_map = OrderedDict()
+        for p in installed_packages:
+            installed_map[p.id] = p
+        package_queues = policy._compute_prefered_packages_installed_first(
+                pool, installed_map, [p.id for p in packages + installed_packages])
+
+        r_package_queues = OrderedDict()
+        r_package_queues[u"mkl"] = collections.deque(p.id for p in installed_packages + packages)
+
+        self.assertEqual(r_package_queues, package_queues)

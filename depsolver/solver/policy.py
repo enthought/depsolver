@@ -20,7 +20,9 @@ class DefaultPolicy(object):
     Its behavior is:
 
         1. when multiple candidates are available, pick up the highest version first
-        2. if a package is already installed, it takes precendence over higher
+        2. if a package is provided directly, it takes precedence over
+        providers (overruling 1.)
+        3. if a package is already installed, it takes precendence over higher
         version (over-ruling 1.)
     """
     def _compute_prefered_packages_installed_first(self, pool, installed_map, package_ids):
@@ -39,9 +41,13 @@ class DefaultPolicy(object):
         package_queue: dict
             package name -> sorted queue of package ids. 
         """
-        package_name_to_package_ids = collections.defaultdict(collections.deque)
+        package_name_to_package_ids = collections.OrderedDict()
         for package_id in package_ids:
             package = pool.package_by_id(package_id)
+
+            if not package.name in package_name_to_package_ids:
+                package_name_to_package_ids[package.name] = collections.deque()
+
             if package_id in installed_map:
                 package_name_to_package_ids[package.name].appendleft(package_id)
             else:
@@ -49,7 +55,15 @@ class DefaultPolicy(object):
 
         return package_name_to_package_ids
 
-    def prefered_package_ids(self, pool, installed_map, decision_queue):
+    def _print_package_queues(self):
+        if package_queues:
+            print "package queues:"
+        else:
+            print "empty package queues"
+        for name in package_queues:
+            print "\t{}: {}".format(name, package_queues[name])
+
+    def select_preferred_packages(self, pool, installed_map, decision_queue):
         """Return a list of preferred package ids to install for the given
         package ids list, sorted by priority (from highest to lowest)."""
         package_queues = \
@@ -70,15 +84,11 @@ class DefaultPolicy(object):
         for package_name, package_queue in package_queues.items():
             package_queues[package_name] = prune_to_best_version(pool, package_queue)
 
-        if len(package_queues) > 1:
-            raise NotImplementedError("More than one package name in select " \
-                                      "and install not supported yet")
-        else:
-            try:
-                candidates = six.advance_iterator(iter(package_queues.values()))
-            except StopIteration:
-                raise DepSolverError("No candidate in package_queues ?")
-            return collections.deque(candidates)
+        candidates = []
+        for queue in six.itervalues(package_queues):
+            candidates.extend(list(queue))
+
+        return candidates
 
     def find_updated_packages(self, pool, installed_map, package):
         packages = []
@@ -101,6 +111,9 @@ class DefaultPolicy(object):
                     return 1
                 if self._replaces(b, a):
                     return -1
+
+            if required_package is not None:
+                raise NotImplementedError("required_package handling not implemented yet")
 
             if a.id > b.id:
                 return 1

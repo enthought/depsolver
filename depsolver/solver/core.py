@@ -92,8 +92,8 @@ class Solver(HasTraits):
                     if package.id in self.installed_map:
                         self.update_map[package.id] = True
             elif job.job_type == "upgrade":
-                for package in self.installed_map:
-                    self.update_map[package.id] = True
+                for package_id in self.installed_map:
+                    self.update_map[package_id] = True
             elif job.job_type == "install":
                 if len(job.packages) < 1:
                     raise NotImplementedError()

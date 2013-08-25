@@ -198,7 +198,8 @@ class TestSolverScenario(unittest.TestCase):
         package_ids = [abs(decision.literal) for decision in decisions]
 
         package_names = []
-        for package_id in package_ids:
+        for decision in decisions:
+            package_id = abs(decision.literal)
             package_name = scenario.solver.pool.package_by_id(package_id).unique_name
             if decision.literal < 0:
                 package_name = "-" + package_name

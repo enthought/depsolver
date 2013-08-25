@@ -1,6 +1,8 @@
 import collections
 import copy
 
+import six
+
 from depsolver.errors \
     import \
         DepSolverError
@@ -92,11 +94,11 @@ class Scheduler(object):
         while len(incoming) > 0:
             n = incoming.pop()
             res.append(n)
-            for m in (k for k, v in before.iteritems() if n in v):
+            for m in (k for k, v in six.iteritems(before) if n in v):
                 before[m] = list(set(before[m]).difference([n]))
                 if len(before[m]) == 0:
                     incoming.add(m)
-        if any([bool(v) for v in before.itervalues()]):
+        if any([bool(v) for v in six.itervalues(before)]):
             raise DepSolverError("Circular dependency: %s", ([k for k, v in before.iteritems() if v],))
         else:
             return res

@@ -57,11 +57,11 @@ class DefaultPolicy(object):
 
     def _print_package_queues(self):
         if package_queues:
-            print "package queues:"
+            print("package queues:")
         else:
-            print "empty package queues"
+            print("empty package queues")
         for name in package_queues:
-            print "\t{}: {}".format(name, package_queues[name])
+            print("\t%s: %s" % (name, package_queues[name]))
 
     def select_preferred_packages(self, pool, installed_map, decision_queue):
         """Return a list of preferred package ids to install for the given

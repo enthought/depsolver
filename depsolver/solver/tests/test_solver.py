@@ -29,6 +29,9 @@ from depsolver.solver.core \
 from depsolver.solver.tests.scenarios.make_assertion_rules \
     import \
        MakeAssertionRulesScenario
+from depsolver.solver.tests.scenarios.solver \
+    import \
+       SolverScenario
 
 P = PackageInfo.from_string
 R = Requirement.from_string
@@ -119,6 +122,89 @@ class TestMakeAssertionRulesScenarios(unittest.TestCase):
         decisions = scenario.compute_decisions()
 
         self.assertEqual(package_ids, list(decisions._decision_map.keys()))
+
+    def test_complex_scenario1(self):
+        scenario = "complex_scenario1.yaml"
+        self._compute_decisions(scenario)
+
+    def test_complex_scenario2(self):
+        scenario = "complex_scenario2.yaml"
+        self._compute_decisions(scenario)
+
+    def test_conflict_scenario1(self):
+        scenario = "conflict_scenario1.yaml"
+        self._compute_decisions(scenario)
+
+    def test_multiple_provides_4_candidates(self):
+        """Test rules creation for a single package wo dependencies and 4 candidates."""
+        scenario = "multiple_provides_4_candidates.yaml"
+        self._compute_decisions(scenario)
+
+    def test_multiple_provides_single_fulfilled_provides(self):
+        """Test rules creation when multiple versions are available but only
+        one fulfills the request."""
+        scenario = "multiple_provides_single_fulfilled_provides.yaml"
+        self._compute_decisions(scenario)
+
+    def test_multiple_provides_simple(self):
+        """Test we generate obsolete rules when multiple candidates exist for a
+        given package requirement."""
+        scenario = "multiple_provides_simple.yaml"
+        self._compute_decisions(scenario)
+
+    def test_already_installed_indirect_provided(self):
+        scenario = "multiple_provides_1_installed.yaml"
+        self._compute_decisions(scenario)
+
+    def test_replace_scenario1(self):
+        scenario = "replace_scenario1.yaml"
+        self._compute_decisions(scenario)
+
+    def test_replace_scenario2(self):
+        scenario = "replace_scenario2.yaml"
+        self._compute_decisions(scenario)
+
+    def test_single_dependency_simple(self):
+        scenario = "single_dependency_simple.yaml"
+        self._compute_decisions(scenario)
+
+    def test_single_dependency_installed_simple(self):
+        scenario = "single_dependency_installed_simple.yaml"
+        self._compute_decisions(scenario)
+
+    def test_single_dependency_multiple_provides(self):
+        scenario = "single_dependency_multiple_provides.yaml"
+        self._compute_decisions(scenario)
+
+class TestSolverScenario(unittest.TestCase):
+    def _compute_decisions(self, scenario_description):
+        data_directory = op.join(op.dirname(__file__), "scenarios", "data", "rules_generator")
+        test_directory = op.join(op.dirname(__file__), "scenarios", "data", "solver")
+
+        filename = op.join(data_directory, scenario_description)
+
+        r_package_strings, r_package_ids = [], []
+        fp = open(op.join(test_directory, op.splitext(scenario_description)[0] + ".test"))
+        try:
+            for line in fp:
+                package, package_id = (part.strip() for part in line.split(";"))
+                r_package_strings.append(package)
+                r_package_ids.append(int(package_id))
+        finally:
+            fp.close()
+
+        scenario = SolverScenario.from_yaml(filename)
+        decisions = scenario.compute()
+        package_ids = [abs(decision.literal) for decision in decisions]
+
+        package_names = []
+        for package_id in package_ids:
+            package_name = scenario.solver.pool.package_by_id(package_id).unique_name
+            if decision.literal < 0:
+                package_name = "-" + package_name
+            package_names.append(package_name)
+
+        self.assertEqual(r_package_ids, package_ids)
 
     def test_complex_scenario1(self):
         scenario = "complex_scenario1.yaml"

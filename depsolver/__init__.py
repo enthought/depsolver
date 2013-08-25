@@ -7,6 +7,9 @@ from depsolver.pool \
 from depsolver.repository \
     import\
         Repository
+from depsolver.request \
+    import\
+        Request
 from depsolver.requirement \
     import\
         Requirement

@@ -294,6 +294,3 @@ class RulesGenerator(HasTraits):
         for job in self.request.jobs:
             if job.job_type == "install":
                 self._add_install_job_rules(job)
-            else:
-                if not job.job_type == "update":
-                    raise NotImplementedError("Job type %s not implemented yet" % job.job_type)

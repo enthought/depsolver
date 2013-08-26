@@ -233,9 +233,9 @@ class TestComputePreferredPackages(unittest.TestCase):
                 pool, {}, [p.id for p in packages])
 
         r_package_queues = OrderedDict()
-        r_package_queues[u"numpy"] = collections.deque([
+        r_package_queues[six.u("numpy")] = collections.deque([
             self.numpy_1_6_0.id, self.numpy_1_6_1.id, self.numpy_1_7_1.id])
-        r_package_queues[u"nomkl_numpy"] = collections.deque([
+        r_package_queues[six.u("nomkl_numpy")] = collections.deque([
             self.nomkl_numpy_1_6_0.id, self.nomkl_numpy_1_6_1.id,
             self.nomkl_numpy_1_7_1.id])
 
@@ -260,6 +260,6 @@ class TestComputePreferredPackages(unittest.TestCase):
                 pool, installed_map, [p.id for p in packages + installed_packages])
 
         r_package_queues = OrderedDict()
-        r_package_queues[u"mkl"] = collections.deque(p.id for p in installed_packages + packages)
+        r_package_queues[six.u("mkl")] = collections.deque(p.id for p in installed_packages + packages)
 
         self.assertEqual(r_package_queues, package_queues)

@@ -2,7 +2,7 @@ import unittest
 
 from depsolver.constraints \
     import \
-        Equal, GEQ, GT, LEQ, LT, Not
+        Any, Equal, GEQ, GT, LEQ, LT, Not
 from depsolver.errors \
     import \
         DepSolverError
@@ -102,3 +102,9 @@ class TestRawRequirementParser(unittest.TestCase):
                         GT("1.3.0"), LT("2.0.0"),
                     ]
                 })
+
+    def test_any_simple(self):
+        r_constraints = {"numpy": [Any()]}
+        parser = RawRequirementParser()
+
+        self.assertEqual(parser.parse("numpy *"), r_constraints)

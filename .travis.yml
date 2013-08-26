@@ -1,13 +1,34 @@
 language: python
 python:
    - pypy
+   - 2.6
    - 2.7
    - 3.2
    - 3.3
+env:
+   - NEEDS_UNITTEST2=""
+matrix:
+  include:
+    - python: 2.6
+      env: NEEDS_UNITTEST2="true"
+    - python: 2.7
+      env: NEEDS_UNITTEST2="true"
+    - python: pypy
+      env: NEEDS_UNITTEST2="true"
+  exclude:
+    - python: 2.6
+      env: NEEDS_UNITTEST2=""
+    - python: 2.7
+      env: NEEDS_UNITTEST2=""
+    - python: pypy
+      env: NEEDS_UNITTEST2=""
 install:
-   - pip install nose coverage six
+   - pip install nose coverage pyyaml six tempita
+   - if [ "${NEEDS_UNITTEST2}" == "true" ]; then
+       pip install unittest2;
+       fi
 script:
-  - nosetests --with-doctest --with-coverage --cover-package=depsolver --cover-inclusive depsolver
+  - nosetests --with-coverage --cover-package=depsolver --cover-inclusive depsolver
 notifications:
   email:
     - davidc@enthought.com

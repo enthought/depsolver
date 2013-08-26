@@ -24,6 +24,7 @@ _DEFAULT_SCANNER = re.Scanner([
     (r"<=", lambda scanner, token: LEQToken(token)),
     (r"<", lambda scanner, token: LTToken(token)),
     (r"!=", lambda scanner, token: NotToken(token)),
+    (r"\*", lambda scanner, token: AnyToken(token)),
     (",", lambda scanner, token: CommaToken(token)),
     (" +", lambda scanner, token: None),
 ])
@@ -45,6 +46,9 @@ class CommaToken(Token):
 
 class DistributionNameToken(Token):
     typ = "distribution_name"
+
+class AnyToken(Token):
+    typ = "any"
 
 class VersionToken(Token):
     typ = "version"
@@ -170,6 +174,11 @@ class RawRequirementParser(object):
         for requirement_block in iter_over_requirement(tokens_stream):
             if len(requirement_block) == 3:
                 _parse_full_block(requirement_block)
+            elif len(requirement_block) == 2:
+                distribution = requirement_block[0]
+                if not isinstance(requirement_block[1], AnyToken):
+                    raise DepSolverError("Invalid requirement block: %s" % requirement_block)
+                parsed[distribution.value].append(Any())
             elif len(requirement_block) == 1:
                 distribution = requirement_block[0]
                 parsed[distribution.value].append(Any())

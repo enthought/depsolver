@@ -294,6 +294,8 @@ class Version(object):
                     % (type(self).__name__, type(other).__name__))
 
     def __eq__(self, other):
+        if other is None:
+            return False
         self._ensure_can_compare(other)
         return self._comparable_parts == other._comparable_parts
 

@@ -1,35 +1,64 @@
 import collections
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Dict, Instance, List, Long, Unicode
 from depsolver.errors \
     import \
-        MissingPackageInPool
+        DepSolverError, MissingPackageInfoInPool
+from depsolver.package \
+    import \
+        PackageInfo
+from depsolver.repository \
+    import \
+        Repository
 from depsolver.requirement \
     import \
         Requirement
+from depsolver.utils \
+    import \
+        CachedScheduler
 
+MATCH_NONE = 0
 MATCH_NAME = 1
 MATCH = 2
 MATCH_PROVIDE = 3
+MATCH_REPLACE = 4
 
-class Pool(object):
+class Pool(HasTraits):
     """Pool objects model a pool of repositories.
 
     Pools are able to find packages that provide a given requirements (handling
     the provides concept from package metadata).
     """
-    def __init__(self, repositories=None):
-        self._id_to_package = {}
+    repositories = List(Instance(Repository))
 
-        # provide.name -> package.id mapping
-        self._provide_name_to_ids = collections.defaultdict(set)
+    _packages_by_id = Dict()
+    _packages_by_name = Dict()
 
-        if repositories:
+    _id = Long(1)
+
+    _repository_by_name = Instance(collections.defaultdict)
+    _scheduler = Instance(CachedScheduler)
+
+    def __init__(self, repositories=None, **kw):
+        scheduler = CachedScheduler()
+        repository_by_name = collections.defaultdict(list)
+        super(Pool, self).__init__(self, _scheduler=scheduler,
+                _repository_by_name=repository_by_name, **kw)
+        if repositories is None:
+            repositories = []
+
+        # provide.name -> package mapping
+        self._packages_by_name = collections.defaultdict(list)
+
+        if len(repositories) > 0:
             for repository in repositories:
                 self.add_repository(repository)
 
     def has_package(self, package):
         package_id = package.id
-        return package_id in self._id_to_package
+        return package_id in self._packages_by_id
 
     def add_repository(self, repository):
         """Add a repository to this pool.
@@ -37,14 +66,21 @@ class Pool(object):
         Arguments
         ---------
         repository: Repository
-            repository
+            repository to add
         """
-        for package in repository.iter_packages():
-            self._id_to_package[package.id] = package
+        self.repositories.append(repository)
+        self._repository_by_name[repository.name].append(repository)
 
-            self._provide_name_to_ids[package.name].add(package.id)
+        for package in repository.iter_packages():
+            package.id = self._id
+            self._id += 1
+            self._packages_by_id[package.id] = package
+
+            self._packages_by_name[package.name].append(package)
             for provide in package.provides:
-                self._provide_name_to_ids[provide.name].add(package.id)
+                self._packages_by_name[provide.name].append(package)
+            for replace in package.replaces:
+                self._packages_by_name[replace.name].append(package)
 
     def package_by_id(self, package_id):
         """Retrieve a package from its id.
@@ -55,9 +91,9 @@ class Pool(object):
             A package id
         """
         try:
-            return self._id_to_package[package_id]
+            return self._packages_by_id[package_id]
         except KeyError:
-            raise MissingPackageInPool(package_id)
+            raise MissingPackageInfoInPool(package_id)
 
     def what_provides(self, requirement, mode='composer'):
         """Returns a list of packages that provide the given requirement.
@@ -78,40 +114,42 @@ class Pool(object):
                 - 'include_indirect': only returns packages that match this
                   requirement directly or indirectly (i.e. includes packages
                   that provides this package)
-                - 'any': returns any version of the package regardless of the
-                  version, includes packages matching directly and indirectly.
         """
         # FIXME: this is conceptually copied from whatProvides in Composer, but
         # I don't understand why the policy of preferring non-provided over
         # provided packages is handled here.
-        if not mode in ['composer', 'direct_only', 'include_indirect', 'any']:
+        if not mode in ['composer', 'direct_only', 'include_indirect']:
             raise ValueError("Invalid mode %r" % mode)
 
-        any_matches = []
         strict_matches = []
         provided_match = []
+        name_match = False
 
-        for candidate_id in self._provide_name_to_ids[requirement.name]:
-            package = self._id_to_package[candidate_id]
+        for package in self._packages_by_name[requirement.name]:
             match = self.matches(package, requirement)
-            if match == MATCH_NAME:
-                any_matches.append(package)
+            if match == MATCH_NONE:
+                pass
+            elif match == MATCH_NAME:
+                name_match = True
             elif match == MATCH:
+                name_match = True
                 strict_matches.append(package)
             elif match == MATCH_PROVIDE:
                 provided_match.append(package)
+            elif match == MATCH_REPLACE:
+                strict_matches.append(package)
+            else:
+                raise ValueError("Invalid match type: {}".format(match))
 
         if mode == 'composer':
-            if len(any_matches) > 0 or len(strict_matches) > 0:
+            if name_match:
                 return strict_matches
             else:
-                return provided_match
+                return strict_matches + provided_match
         elif mode == 'direct_only':
             return strict_matches
         elif mode == 'include_indirect':
             return strict_matches + provided_match
-        elif mode == 'any':
-            return strict_matches + provided_match + any_matches
 
     def matches(self, candidate, requirement):
         """Checks whether the candidate package matches the requirement, either
@@ -119,7 +157,7 @@ class Pool(object):
 
         Arguments
         ---------
-        candidate: Package
+        candidate: PackageInfo
             Candidate package
         requirement: Requirement
             The requirement to match
@@ -136,22 +174,67 @@ class Pool(object):
 
         Examples
         --------
-        >>> from depsolver import Package, Requirement
+        >>> from depsolver import PackageInfo, Requirement
         >>> R = Requirement.from_string
         >>> pool = Pool()
-        >>> pool.matches(Package.from_string('numpy-1.3.0'), R('numpy >= 1.2.0')) == MATCH
+        >>> pool.matches(PackageInfo.from_string('numpy-1.3.0'), R('numpy >= 1.2.0')) == MATCH
         True
         """
         if requirement.name == candidate.name:
-            candidate_requirement_string = "%s == %s" % (candidate.name, candidate.version)
-            candidate_requirement = Requirement.from_string(candidate_requirement_string)
-            if requirement.matches(candidate_requirement):
+            candidate_requirement = Requirement.from_package_string(candidate.unique_name)
+            if requirement.is_universal or candidate_requirement.matches(requirement):
                 return MATCH
             else:
                 return MATCH_NAME
+        else:
+            for provide in candidate.provides:
+                if requirement.matches(provide):
+                    return MATCH_PROVIDE
 
-        for provide in candidate.provides:
-            if requirement.matches(provide):
-                return MATCH_PROVIDE
+            for replace in candidate.replaces:
+                if requirement.matches(replace):
+                    return MATCH_REPLACE
 
-        return False
+            return MATCH_NONE
+
+    def id_to_string(self, package_id):
+        """
+        Convert a package id to a nice string representation.
+        """
+        package = self.package_by_id(abs(package_id))
+        if package_id > 0:
+            return "+" + str(package)
+        else:
+            return "-" + str(package)
+
+    #------------------------
+    # Repository priority API
+    #------------------------
+    def set_repository_order(self, repository_name, after=None, before=None):
+        candidates = self._repository_by_name[repository_name]
+        if len(candidates) < 1:
+            raise DepSolverError("No repository with name '%s'" % (repository_name,))
+        else:
+            self._scheduler.set_constraints(repository_name, after, before)
+
+    def repository_priority(self, repository):
+        """
+        Returns the priority of a repository.
+
+        Priorities are in the ]-inf, 0] integer range, and the ordering is the
+        same as integers: the lower the priority number, the less a repository
+        has priority over other repositories.
+
+        If no constraint has been set up for the repository, its priority is 0.
+
+        Parameters
+        ----------
+        repository: Repository
+            The repository to compute the priority of.
+        """
+        if repository.name in self._repository_by_name:
+            priorities = self._scheduler.compute_priority()
+            # We return a negative number to follow Composer convention.
+            return priorities.get(repository.name, 0) - (len(priorities) - 1)
+        else:
+            raise DepSolverError("Unknown repository name '%s'" % (repository.name,))

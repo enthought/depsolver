@@ -1,3 +1,10 @@
+try:
+    from depsolver._version \
+        import \
+            __version__
+except ImportError as e:
+    __version__ = "no-built"
+
 from depsolver.package \
     import\
         PackageInfo

@@ -1,13 +1,21 @@
+import os.path as op
+
 from distutils.core import setup
+
+VERSION = "0.0.2.dev1"
 
 with open("README.rst", "rt") as fp:
     DESCRIPTION = fp.read()
 
+with open(op.join("depsolver", "_version.py"), "wt") as fp:
+    fp.write("__version__ = \"%s\"" % VERSION)
+
 def run_setup():
-    setup(name="depsolver", version="0.0.1",
+    setup(name="depsolver", version=VERSION,
           packages=["depsolver",
               "depsolver.solver",
               "depsolver.solver.tests",
+              "depsolver.solver.tests.scenarios",
               "depsolver.tests",
           ],
           license="BSD",

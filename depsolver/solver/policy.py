@@ -2,6 +2,9 @@ import collections
 
 import six
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.errors \
     import \
         DepSolverError
@@ -41,7 +44,7 @@ class DefaultPolicy(object):
         package_queue: dict
             package name -> sorted queue of package ids. 
         """
-        package_name_to_package_ids = collections.OrderedDict()
+        package_name_to_package_ids = OrderedDict()
         for package_id in package_ids:
             package = pool.package_by_id(package_id)
 

@@ -9,7 +9,7 @@ import collections
 
 from depsolver.compat \
     import \
-        OrderedDict
+        OrderedDict, sorted_with_cmp
 from depsolver.package \
     import \
         PackageInfo
@@ -96,7 +96,7 @@ class TestDefaultPolicy(unittest.TestCase):
         def _cmp(a, b):
             return policy.cmp_by_priority_prefer_installed(pool, {}, a, b)
 
-        self.assertEqual(r_sorted_packages, sorted(queue, cmp=_cmp))
+        self.assertEqual(r_sorted_packages, sorted_with_cmp(queue, cmp=_cmp))
 
     def test_cmp_by_priority_prefer_installed_multi_repositories(self):
         """
@@ -121,7 +121,7 @@ class TestDefaultPolicy(unittest.TestCase):
         def _cmp(a, b):
             return policy.cmp_by_priority_prefer_installed(pool, {}, a, b)
 
-        self.assertEqual(r_sorted_packages, sorted(queue, cmp=_cmp))
+        self.assertEqual(r_sorted_packages, sorted_with_cmp(queue, cmp=_cmp))
 
     def test_cmp_by_priority_prefer_installed_replace(self):
         """
@@ -139,7 +139,7 @@ class TestDefaultPolicy(unittest.TestCase):
             def _cmp(a, b):
                 return policy.cmp_by_priority_prefer_installed(pool, {}, a, b)
 
-            self.assertEqual(r_sorted_packages, sorted(queue, cmp=_cmp))
+            self.assertEqual(r_sorted_packages, sorted_with_cmp(queue, cmp=_cmp))
 
         scikits_0_12_0 = P("scikits_learn-0.12.0")
         sklearn_0_13_0 = P("sklearn-0.13.0")

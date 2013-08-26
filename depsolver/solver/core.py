@@ -1,234 +1,335 @@
+import six
+
+import collections
+
 from depsolver.errors \
     import \
         DepSolverError
-from depsolver.operations \
+
+from depsolver.compat \
     import \
-        Install, Remove, Update
-from depsolver.solver.create_clauses \
+        OrderedDict
+from depsolver.bundled.traitlets \
     import \
-        create_install_rules
+        HasTraits, Instance, List, Long
+
 from depsolver.solver.decisions \
     import \
         DecisionsSet
+from depsolver.operations \
+    import \
+        Install, Remove, Update
+from depsolver.pool \
+    import \
+        Pool
+from depsolver.repository \
+    import \
+        Repository
+from depsolver.request \
+    import \
+        Request
 from depsolver.solver.policy \
     import \
         DefaultPolicy
-from depsolver.solver.rule \
+from depsolver.solver.rules_generator \
     import \
-        PackageLiteral
+        RulesGenerator, RulesSet
+from depsolver.solver.rules_watch_graph \
+    import \
+        RulesWatchGraph, RuleWatchNode
 
-def run_unit_propagation(clauses, variables):
-    """Run unit propagation, i.e. for each unit clause, infer the corresponding
-    literal and remove the clause from the clauses set.
-    """
-    iterate_over = clauses[:]
-    for clause in iterate_over:
-        is_unit, can_be_infered = variables.is_unit(clause)
-        if is_unit:
-            variables.infer(can_be_infered, clause)
-            clauses = prune_satisfied_clauses(clauses, variables)
-            if clauses is None:
-                raise DepSolverError("Bug in unit propagation ?")
+_BRANCH_INFO = collections.namedtuple("_BranchInfo", ["literals", "level"])
 
-    return clauses
+# FIXME: the php model for this class is pretty broken as many attributes are
+# initialized outside the ctor. Fix this.
+class Solver(HasTraits):
+    policy = Instance(DefaultPolicy)
+    pool = Instance(Pool)
+    installed_repository = Instance(Repository)
 
-def prune_satisfied_clauses(clauses, variables):
-    """Remove any clause that is already satisfied (i.e. is True) from the
-    given clause set.
+    installed_map = Instance(OrderedDict)
+    update_map = Instance(OrderedDict)
 
-    Parameters
-    ----------
-    clauses: seq
-        Sequence of clauses
-    variables: dict
-        variable name -> bool mapping
+    _propagate_index = Long(-1)
+    _learnt_why = Instance(OrderedDict)
+    _branches = List(Instance(_BRANCH_INFO))
 
-    Returns
-    -------
-    clauses: seq or None
-        Sequence of clauses that are not yet satisfied. If None, it means at
-        least one clause could not be satisfied
-    """
-    new_clauses = []
+    def __init__(self, pool, installed_repository, **kw):
+        policy = DefaultPolicy()
+        installed_map = OrderedDict()
+        update_map = OrderedDict()
+        learnt_why = OrderedDict()
+        branches = []
+        super(Solver, self).__init__(self, policy=policy, pool=pool,
+                installed_repository=installed_repository,
+                installed_map=installed_map,
+                update_map=update_map,
+                _learnt_why=learnt_why,
+                _branches=branches, **kw)
 
-    for clause in clauses:
-        evaluated_or_none = variables.satisfies_or_none(clause)
-        if evaluated_or_none is None:
-            new_clauses.append(clause)
-        elif evaluated_or_none is False:
-            return None
+    def solve(self, request):
+        decisions, rules_set = self._prepare_solver(request)
+        self._make_assertion_rules_decisions(decisions, rules_set)
 
-    return new_clauses
+        watch_graph = RulesWatchGraph()
+        for rule in rules_set:
+            watch_graph.insert(RuleWatchNode(rule))
+        self._run_sat(decisions, rules_set, watch_graph, True)
 
-def prune_pure_literals(clauses, variables):
-    new_clauses = []
-    for clause in clauses:
-        if len(clause.literals) == 1:
-            literal = clause.literals[0]
-            assert not literal.name in variables
-            variables.infer(literal, clause)
-        else:
-            new_clauses.append(clause)
+        for package_id in self.installed_map:
+            if decisions.is_undecided(package_id):
+                decisions.decide(-package_id, 1, "")
 
-    return new_clauses
+        return decisions
 
-def _run_dpll_iteration(clauses, variables):
-    # Return (should_continue, clauses) where:
-    #   - should_continue is a bool on whether to continue or not
-    #   - clauses is a set of clauses
-    new_clauses = prune_satisfied_clauses(clauses, variables)
-    if new_clauses is None:
-        return False, clauses
-    else:
-        new_clauses = run_unit_propagation(new_clauses, variables)
-        new_clauses = prune_pure_literals(new_clauses, variables)
-        return True, new_clauses
+    def _setup_install_map(self, jobs):
+        for package in self.installed_repository.iter_packages():
+            self.installed_map[package.id] = package
 
-def decide_from_assertion_rules(clauses, variables):
-    for clause in clauses:
-        if clause.is_assertion:
-            variables.infer(clause.get_literal(), clause)
+        for job in jobs:
+            if job.job_type == "update":
+                for package in job.packages:
+                    if package.id in self.installed_map:
+                        self.update_map[package.id] = True
+            elif job.job_type == "upgrade":
+                for package_id in self.installed_map:
+                    self.update_map[package_id] = True
+            elif job.job_type == "install":
+                if len(job.packages) < 1:
+                    raise NotImplementedError()
 
-class Solver(object):
-    def __init__(self, pool, installed_repository, policy=None):
-        self.pool = pool
-        self.installed_repository = installed_repository
+    def _prepare_solver(self, request):
+        self._setup_install_map(request.jobs)
 
-        if policy is None:
-            policy = DefaultPolicy()
-        self.policy = policy
+        decisions = DecisionsSet(self.pool)
 
-        self._id_to_installed_package = dict((p.id, p) for p in
-                                             installed_repository.iter_packages())
-        self._id_to_updated_package = {}
+        rules_generator = RulesGenerator(self.pool, request, self.installed_map)
+        return decisions, rules_generator.iter_rules()
 
-    def _run_dpll(self, clauses, variables):
-        while True:
-            if len(clauses) == 0:
-                break
-            clause = clauses[0]
-            satisfied_or_none = variables.satisfies_or_none(clause)
-            if satisfied_or_none is True:
-                clauses = clauses[1:]
-                if len(clauses) < 1:
-                    break
-                else:
-                    continue
-            if satisfied_or_none is False:
-                raise DepSolverError("Impossible situation ! And yet, it happned... (SAT bug ?)")
+    def _make_assertion_rules_decisions(self, decisions, rules_generator):
+        decision_start = len(decisions) - 1
 
-            # TODO: add function to find out set of undecided literals of a clause
-            decision_queue = list(literal.name for literal in clause.literals if not
-                    literal.name in variables)
-            clauses = self._select_and_install(clause, clauses, decision_queue, variables)
-
-    def _solve_job_clauses(self, clauses, job_clauses, variables):
-        for job_clause in job_clauses:
-            is_satisfied_or_none = variables.satisfies_or_none(job_clause)
-
-            if is_satisfied_or_none is True:
-                continue
-            if is_satisfied_or_none is False:
+        for rule in rules_generator:
+            if not rule.is_assertion or not rule.enabled:
                 continue
 
-            decision_queue = set(literal \
-                    for literal in job_clause.literals \
-                    if not literal.name in variables)
+            literals = rule.literals
+            literal = literals[0]
 
-            if len(self._id_to_updated_package) > 0:
-                raise NotImplementedError("update not yet implemented")
-            if len(self._id_to_installed_package) > 0:
-                old_decision_queue = decision_queue
-                decision_queue = []
-                for literal in job_clause.literals:
-                    if literal.name in self._id_to_updated_package:
-                        decision_queue = old_decision_queue
+            if not decisions.is_decided(abs(literal)):
+                decisions.decide(literal, 1, rule)
+                continue;
+
+            if decisions.satisfy(literal):
+                continue
+
+            if rule.rule_type == "learnt":
+                rule.enable = False
+                continue
+
+            raise NotImplementedError()
+
+    def _propagate(self, decisions, watch_graph, level):
+        while decisions.is_offset_valid(self._propagate_index):
+            decision = decisions.at_offset(self._propagate_index)
+
+            conflict = watch_graph.propagate_literal(
+                    decision.literal, level, decisions)
+
+            self._propagate_index += 1
+            if conflict is not None:
+                return conflict
+
+        return None
+
+    def _prune_updated_packages(self, decision_queue):
+        # prune all update packages until installed version except for
+        # requested updates
+        if len(self.installed_repository) != len(self.update_map):
+            pruned_queue = []
+            for literal in decision_queue:
+                package_id = abs(literal)
+                if package_id in self.installed_map:
+                    pruned_queue.append(literal)
+                    if package_id in self.update_map:
+                        pruned_queue = decision_queue
                         break
-                    if literal.name in self._id_to_installed_package:
-                        decision_queue.append(literal)
-            if len(decision_queue) < 1:
-                continue
+            decision_queue = pruned_queue
+        return decision_queue
 
-            clauses = self._select_and_install(job_clause, clauses,
-                    [l.name for l in decision_queue],
-                    variables)
+    def _set_propagate_learn(self, decisions, rules_set, watch_graph, level, literal, disable_rules, rule):
+        """
+        add free decision (a positive literal) to decision queue
+        increase level and propagate decision
+        return if no conflict.
 
-        return clauses
+        in conflict case, analyze conflict rule, add resulting
+        rule to learnt rule set, make decision from learnt
+        rule (always unit) and re-propagate.
 
-    def _select_and_install(self, clause, clauses, decision_queue, variables):
-        candidates = self.policy.prefered_package_ids(self.pool,
-                self._id_to_installed_package,
-                decision_queue)
-        while len(candidates) > 0:
-            candidate = candidates.popleft()
-            # FIXME: consolidate string vs object for literals
-            l_candidate = PackageLiteral(candidate, self.pool)
-            assert not candidate in variables
-            variables.infer(l_candidate, clause)
-            status, new_clauses = _run_dpll_iteration(clauses, variables)
-            if status is False:
-                variables.pop()
-                variables.infer(~l_candidate, clause)
-                status, new_clauses = _run_dpll_iteration(clauses, variables)
-                if status is False:
-                    # FIXME: refactor solver parts that needs backtracking (and
-                    # actuall implement backtracking !)
-                    raise NotImplementedError("Backtracking not implemented yet")
-            else:
-                clauses = new_clauses
+        returns the new solver level or 0 if unsolvable
+        """
+        level += 1
+
+        decisions.decide(literal, level, rule)
+
+        while True:
+            rule = self._propagate(decisions, watch_graph, level)
+            if rule is None:
                 break
 
-        return clauses
+            if level == 1:
+                raise NotImplementedError()
+                #return $this->analyzeUnsolvable($rule, $disableRules);
 
-    def solve(self, requirement):
-        """Compute the set of operations to fulfill the given requirement.
+            # conflict
+            learn_literal, new_level, new_rule, why = self._analyze(level, rule)
 
-        Parameters
-        ----------
-        requirement: Requirement
-            The requirement to fulfill
+            if new_level <= 0 or new_level >= level:
+                raise DepSolverError(
+                    "Trying to revert to invalid level %s from level %s" % (new_level, level)
+                )
+            elif new_rule is None:
+                raise DepSolverError(
+                    "No rule was learned from analyzing %s at level %d." % (rule, level)
+                )
 
-        Returns
-        --------
-        operations: seq
-            List of operations to apply to the system to fulfill the requirement.
-        """
-        clauses = create_install_rules(self.pool, requirement)
-        job_clauses = clauses[:1]
+            level = new_level
+            self._revert(level)
 
-        variables = DecisionsSet(self.pool)
-        decide_from_assertion_rules(clauses, variables)
+            rules_set.add_rule(new_ruile, "learnt")
+            self._learnt_why[new_rule.id] = why
 
-        clauses = self._solve_job_clauses(clauses, job_clauses, variables)
+            rule_node = RuleWatchNode(new_ule)
+            rule_node.watch2_on_highest(decisions)
+            watch_graph.insert(rule_node)
 
-        if len(clauses) > 0:
-            self._run_dpll(clauses, variables)
+            decisions.decide(learn_literal, level, new_rule)
+        return level
 
-        return self._compute_operations(variables)
+    def _select_and_install(self, decisions, rules_set, watch_graph, level, decision_queue, disable_rules, rule):
+        literals = self.policy.select_preferred_packages(self.pool,
+                self.installed_map, decision_queue)
 
-    def _compute_operations(self, variables):
-        """Build the sequence of operations corresponding to the given
-        variables."""
-        operations = []
+        if len(literals) == 0:
+            raise DepSolverError("Internal error in solver.")
+        else:
+            selected_literal, literals = literals[0], literals[1:]
+            if len(literals) > 0:
+                self._branches.append((literals, level))
 
-        update_package_ids = set()
-        for literal_name, literal_value in variables.items():
-            if literal_value is True and not literal_name in self._id_to_installed_package:
-                package = self.pool.package_by_id(literal_name)
-                if self.installed_repository.has_package_name(package.name):
-                    to_update_packages = self.installed_repository.find_packages(package.name)
-                    assert len(to_update_packages) == 1
-                    to_update_package = to_update_packages[0]
-                    update_package_ids.add(to_update_package.id)
-                    operations.append(Update(to_update_package,
-                                             self.pool.package_by_id(literal_name)))
-                else:
-                    operations.append(Install(self.pool.package_by_id(literal_name)))
+            return self._set_propagate_learn(decisions, rules_set, watch_graph,
+                    level, selected_literal, disable_rules, rule)
 
-        for literal_name, literal_value in variables.items():
-            if literal_value is False and literal_name in self._id_to_installed_package and \
-                    not literal_name in update_package_ids:
-                operations.append(Remove(self.pool.package_by_id(literal_name)))
 
-        operations.reverse()
-        return operations
+    def _run_sat(self, decisions, rules_set, watch_graph, disable_rules=True):
+        self._propagate_index = 0
+
+        # here's the main loop:
+        # 1) propagate new decisions (only needed once)
+        # 2) fulfill jobs
+        # 3) fulfill all unresolved rules
+        # 4) minimalize solution if we had choices
+        # if we encounter a problem, we rewind to a safe level and restart
+        # with step 1
+
+        decision_queue = []
+        decision_supplement_queue = []
+        disable_rules = []
+
+        level = 1
+        system_level = level + 1
+        installed_pos = 0
+
+        while True:
+            if level == 1:
+                conflict_rule = self._propagate(decisions, watch_graph, level)
+                if conflict_rule is not None:
+                    raise NotImplementedError("analyzing conflict rules not yet implemented")
+
+            # Handle job rules
+            if level < system_level:
+                for rule in rules_set.job_rules:
+                    if rule.enabled:
+                        decision_queue = []
+                        none_satisfied = True
+
+                        for literal in rule.literals:
+                            if decisions.satisfy(literal):
+                                none_satisfied = False
+                                break
+
+                            if literal > 0 and decisions.is_undecided(literal):
+                                decision_queue.append(literal)
+
+                        if none_satisfied and len(decision_queue) > 0:
+                            decision_queue = self._prune_updated_packages(decision_queue)
+
+                        if none_satisfied and len(decision_queue) > 0:
+                            old_level = level
+                            level = self._select_and_install(decisions,
+                                    rules_set, watch_graph, level, decision_queue,
+                                    disable_rules, rule)
+
+                            if level == 0:
+                                return
+                            if level <= old_level:
+                                break
+                system_level = level + 1
+
+            if level < system_level:
+                system_level = level
+
+            rule_id = 0
+            n = 0
+            while n < len(rules_set):
+                if rule_id == len(rules_set):
+                    rule_id = 0
+
+                rule = rules_set.rules_by_id[rule_id]
+                rule_id += 1
+                n += 1
+
+                if not rule.enabled:
+                    continue
+
+                decision_queue = []
+
+                if _is_rule_fulfilled(rule, decisions, decision_queue):
+                    continue
+
+                # need to have at least 2 item to pick from
+                if len(decision_queue) < 2:
+                    continue
+
+                o_level = level
+                level = self._select_and_install(decisions, rules_set, watch_graph, level, decision_queue,
+                            disable_rules, rule)
+
+                if level == 0:
+                    return
+
+                n = 0
+
+            if level < system_level:
+                continue
+
+            break
+
+def _is_rule_fulfilled(rule, decisions, decision_queue):
+    # make sure that
+    # * all negative literals are installed
+    # * no positive literal is installed
+    # i.e. the rule is not fulfilled and we
+    # just need to decide on the positive literals
+    #
+    for literal in rule.literals:
+        if literal <= 0:
+            if not decisions.is_decided_install(abs(literal)):
+                return True
+        else:
+            if decisions.is_decided_install(abs(literal)):
+                return True
+            if decisions.is_undecided(abs(literal)):
+                decision_queue.append(literal)
+    return False

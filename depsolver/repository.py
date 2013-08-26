@@ -1,58 +1,54 @@
 import collections
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, Instance, List, Unicode
 from depsolver.package \
     import \
-        Package
+        PackageInfo
 from depsolver.version \
     import \
         Version
 
-class Repository(object):
-    """Creates a new repository instance.
-    
-    A repository is a a container of packages.
+class Repository(HasTraits):
+    """A repository is a container of packages.
 
     Parameters
     ----------
     packages: seq
         A sequence of packages
     """
-    def __init__(self, packages=None):
-        if packages is None:
-            packages = []
-        self._package_name_to_ids = collections.defaultdict(list)
-        for package in packages:
-            self._package_name_to_ids[package.name].append(package.unique_name)
-        self._id_to_package = dict((p.unique_name, p) for p in packages)
+    packages = List(Instance(PackageInfo))
+
+    name = Unicode()
+
+    def __init__(self, packages=None, name="", **kw):
+        super(Repository, self).__init__(name=name, **kw)
+        for p in packages or []:
+            self.add_package(p)
+
+    def __len__(self):
+        return len(self.packages)
 
     def iter_packages(self):
-        """Return an iterator over every package contained in this repo.
-        
-        Note
-        ----
-        Order is undefined.
-        """
-        return self._id_to_package.values()
+        """Return an iterator over every package contained in this repo."""
+        return iter(self.packages)
 
     def list_packages(self):
-        """Return the list of every package contained in this repo.
-
-        Note
-        ----
-        Order is undefined.
-        """
-        return list(self.iter_packages())
+        """Return the list of every package contained in this repo."""
+        return self.packages
 
     def add_package(self, package):
         """Add the given package to the repo.
 
         Parameters
         ----------
-        package: Package
-            Package to look for.
+        package: PackageInfo
+            PackageInfo to add.
         """
-        self._package_name_to_ids[package.name].append(package.unique_name)
-        self._id_to_package[package.unique_name] = package
+        # FIXME: setting up repository to package info is ugly.
+        package.repository = self
+        self.packages.append(package)
 
     def has_package(self, package):
         """Returns True if the given package is present in the repo, False
@@ -60,10 +56,10 @@ class Repository(object):
         
         Parameters
         ----------
-        package: Package
-            Package to look for.
+        package: PackageInfo
+            PackageInfo to look for.
         """
-        return self.find_package(package.name, str(package.version)) is not None
+        return self.find_package(package.name, package.version) is not None
 
     def has_package_name(self, name):
         """Returns True if one package with the given package name is present in
@@ -72,7 +68,7 @@ class Repository(object):
         Parameters
         ----------
         name: str
-            Package name to look for.
+            package name to look for.
         """
         return len(self.find_packages(name)) > 0
 
@@ -83,16 +79,19 @@ class Repository(object):
         ----------
         name: str
             Name of the package(s) to look for
-        version: str
-            Name of the package(s) to look for
+        version: Version
+            Version to look for.
 
         Returns
         -------
-        package: Package or None
+        package: PackageInfo or None
             The package if found, None otherwise.
         """
-        package = Package(name, Version.from_string(version))
-        return self._id_to_package.get(package.unique_name, None)
+        ref = PackageInfo(name=name, version=version)
+        for p in self.packages:
+            if p.unique_name == ref.unique_name:
+                return p
+        return None
 
     def find_packages(self, name):
         """Returns a list of packages with the given name.
@@ -110,8 +109,7 @@ class Repository(object):
 
         Notes
         -----
-        Even if package A provides package B, find_packages(b_name) will not
-        include A
+        Does not consider provides, e.g. if package A provides package B,
+        find_packages(b_name) will not include A
         """
-        return [self._id_to_package[package_id] \
-                for package_id in self._package_name_to_ids[name]]
+        return [p for p in self.packages if p.name == name]

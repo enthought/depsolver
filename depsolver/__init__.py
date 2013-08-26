@@ -1,12 +1,15 @@
 from depsolver.package \
     import\
-        Package
+        PackageInfo
 from depsolver.pool \
     import\
         Pool
 from depsolver.repository \
     import\
         Repository
+from depsolver.request \
+    import\
+        Request
 from depsolver.requirement \
     import\
         Requirement

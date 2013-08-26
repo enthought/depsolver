@@ -153,3 +153,12 @@ class TestRequirementParser(unittest.TestCase):
         self.assertTrue(numpy_requirement.matches(R("numpy == 1.3.5")))
         self.assertFalse(numpy_requirement.matches(R("numpy == 1.3.0")))
         self.assertFalse(numpy_requirement.matches(R("numpy == 1.4.0")))
+
+    def test_from_package_string(self):
+        R = Requirement.from_string
+
+        r_requirement = R("numpy == 1.3.0")
+
+        requirement = Requirement.from_package_string("numpy-1.3.0")
+
+        self.assertEqual(requirement, r_requirement)

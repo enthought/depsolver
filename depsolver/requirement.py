@@ -1,9 +1,15 @@
+from depsolver._package_utils \
+    import \
+        parse_package_full_name
 from depsolver.errors \
     import \
         DepSolverError
 from depsolver.constraints \
     import \
         Equal, GEQ, GT, LEQ, LT, Not
+from depsolver.package \
+    import \
+        parse_package_full_name
 from depsolver.requirement_parser \
     import \
         RawRequirementParser
@@ -20,7 +26,7 @@ class Requirement(object):
     Arguments
     ---------
     name: str
-        Package name
+        PackageInfo name
     specs: seq
         Sequence of constraints
     """
@@ -50,6 +56,20 @@ class Requirement(object):
             raise DepSolverError("Invalid requirement string %r" % requirement_string)
         else:
             return requirements[0]
+
+    @classmethod
+    def from_package_string(cls, package_string):
+        """Creates a new Requirement from a package string.
+
+        This is equivalent to the requirement 'package.name == package.version'
+
+        Arguments
+        ---------
+        package_string: str
+            The package string, e.g. 'numpy-1.3.0'
+        """
+        name, version = parse_package_full_name(package_string)
+        return cls(name, [Equal(version)])
 
     def __init__(self, name, specs):
         self.name = name
@@ -113,13 +133,18 @@ class Requirement(object):
                 else:
                     operator_string = "<="
                 r.append("%s %s %s" % (self.name, operator_string, self._max_bound))
-            if self._min_bound == MinVersion() and self._max_bound == MaxVersion() \
-                    and len(self._not_equals) == 0:
+            if self.is_universal:
                 r.append("%s *" % self.name)
             for neq in self._not_equals:
                 if neq > self._min_bound and neq < self._max_bound:
                     r.append("%s != %s" % (self.name, neq))
         return ", ".join(r)
+
+    @property
+    def is_universal(self):
+        """Returns True if the requirement can matche any version."""
+        return self._min_bound == MinVersion() and self._max_bound == MaxVersion() \
+                and len(self._not_equals) == 0
 
     def __eq__(self, other):
         return repr(self) == repr(other)

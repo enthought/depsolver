@@ -8,10 +8,10 @@ from depsolver.repository \
         Repository
 from depsolver.version \
     import \
-        Version
+        SemanticVersion
 
 P = PackageInfo.from_string
-V = Version.from_string
+V = SemanticVersion.from_string
 
 class TestRepository(unittest.TestCase):
     def setUp(self):

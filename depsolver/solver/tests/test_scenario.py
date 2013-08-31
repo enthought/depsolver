@@ -17,9 +17,6 @@ from depsolver.repository \
 from depsolver.requirement \
     import \
         Requirement
-from depsolver.version \
-    import \
-        Version
 
 from depsolver.solver.core \
     import \
@@ -28,23 +25,22 @@ from depsolver.solver.policy \
     import \
         DefaultPolicy
 
-V = Version.from_string
 R = Requirement.from_string
 
-mkl_10_1_0 = PackageInfo("mkl", V("10.1.0"))
-mkl_10_2_0 = PackageInfo("mkl", V("10.2.0"))
-mkl_10_3_0 = PackageInfo("mkl", V("10.3.0"))
-mkl_11_0_0 = PackageInfo("mkl", V("11.0.0"))
+mkl_10_1_0 = PackageInfo.from_string("mkl-10.1.0")
+mkl_10_2_0 = PackageInfo.from_string("mkl-10.2.0")
+mkl_10_3_0 = PackageInfo.from_string("mkl-10.3.0")
+mkl_11_0_0 = PackageInfo.from_string("mkl-11.0.0")
 
-numpy_1_6_0 = PackageInfo("numpy", V("1.6.0"), dependencies=[R("mkl")])
-numpy_1_6_1 = PackageInfo("numpy", V("1.6.1"), dependencies=[R("mkl")])
-numpy_1_7_0 = PackageInfo("numpy", V("1.7.0"), dependencies=[R("mkl")])
+numpy_1_6_0 = PackageInfo.from_string("numpy-1.6.0; depends (mkl)")
+numpy_1_6_1 = PackageInfo.from_string("numpy-1.6.1; depends (mkl)")
+numpy_1_7_0 = PackageInfo.from_string("numpy-1.7.0; depends (mkl)")
 
-nomkl_numpy_1_7_0 = PackageInfo("nomkl_numpy", V("1.7.0"), provides=[R("numpy == 1.7.0")])
+nomkl_numpy_1_7_0 = PackageInfo.from_string("nomkl_numpy-1.7.0; depends (numpy == 1.7.0)")
 
-scipy_0_10_1 = PackageInfo("scipy", V("0.10.1"), dependencies=[R("numpy >= 1.6.0")])
-scipy_0_11_0 = PackageInfo("scipy", V("0.11.0"), dependencies=[R("numpy >= 1.6.0")])
-scipy_0_12_0 = PackageInfo("scipy", V("0.12.0"), dependencies=[R("numpy >= 1.7.0")])
+scipy_0_10_1 = PackageInfo.from_string("scipy-0.10.1; depends (numpy >= 1.6.0)")
+scipy_0_11_0 = PackageInfo.from_string("scipy-0.11.0; depends (numpy >= 1.6.0)")
+scipy_0_12_0 = PackageInfo.from_string("scipy-0.12.0; depends (numpy >= 1.7.0)")
 
 policy = DefaultPolicy()
 

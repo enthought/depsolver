@@ -110,9 +110,13 @@ class RulesGenerator(HasTraits):
         """
         jobs = self.request.jobs
 
+        #print "start", self.installed_map
         for package in six.itervalues(self.installed_map):
+            #print "@"
             self._add_package_rules(package)
+            #print "@@"
             self._add_updated_packages_rules(package)
+        #print "end"
 
         self._add_job_rules()
         return self.rules_set
@@ -221,6 +225,7 @@ class RulesGenerator(HasTraits):
         """
         Create all the rules required to satisfy installing the given package.
         """
+        #print "add package rule", package
         work_queue = collections.deque()
         work_queue.append(package)
 
@@ -232,6 +237,7 @@ class RulesGenerator(HasTraits):
 
                 for dependency in p.dependencies:
                     dependency_candidates = self.pool.what_provides(dependency)
+                    #print [p.id for p in dependency_candidates]
                     rule = self._create_dependency_rule(p,
                             dependency_candidates, "package_requires",
                             str(dependency))
@@ -275,7 +281,9 @@ class RulesGenerator(HasTraits):
                         self._add_rule(rule, "package")
 
     def _add_updated_packages_rules(self, package):
+        #print "add updated package rules", package, self.installed_map
         updates = self.policy.find_updated_packages(self.pool, self.installed_map, package)
+        #print updates
         for update in updates:
             self._add_package_rules(update)
 

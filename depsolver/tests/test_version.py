@@ -7,10 +7,10 @@ else:
 
 from depsolver.version \
     import \
-        BuildVersion, MaxVersion, MinVersion, PreReleaseVersion, Version, \
-        is_version_valid
+        BuildVersion, MaxVersion, MinVersion, PreReleaseVersion, \
+        SemanticVersion, is_version_valid
 
-V = Version.from_string
+V = SemanticVersion.from_string
 P = PreReleaseVersion.from_string
 B = BuildVersion.from_string
 
@@ -35,7 +35,7 @@ class TestVersionParsing(unittest.TestCase):
 class TestVersion(unittest.TestCase):
     def test_construction_simple(self):
         r_v = V("1.2.0")
-        v = Version(1, 2, 0)
+        v = SemanticVersion(1, 2, 0)
         self.assertEqual(v.__dict__, r_v.__dict__)
 
     def test_hashing(self):
@@ -46,20 +46,20 @@ class TestVersion(unittest.TestCase):
         self.assertEqual(hash(v), hash(r_v))
 
     def test_invalid_arguments(self):
-        self.assertRaises(Exception, lambda: Version("a", 2, 0))
-        self.assertRaises(Exception, lambda: Version(1, "a", 0))
-        self.assertRaises(Exception, lambda: Version(1, 2, "a"))
+        self.assertRaises(Exception, lambda: SemanticVersion("a", 2, 0))
+        self.assertRaises(Exception, lambda: SemanticVersion(1, "a", 0))
+        self.assertRaises(Exception, lambda: SemanticVersion(1, 2, "a"))
 
-        self.assertRaises(Exception, lambda: Version(1, 2, 0, pre_release="alpha"))
-        self.assertRaises(Exception, lambda: Version(1, 2, 0, build="build.1"))
+        self.assertRaises(Exception, lambda: SemanticVersion(1, 2, 0, pre_release="alpha"))
+        self.assertRaises(Exception, lambda: SemanticVersion(1, 2, 0, build="build.1"))
 
         self.assertRaises(Exception, lambda: V("1.2.a"))
 
     def test_repr(self):
         r_data = [
-                (V("1.2.0"), "Version(1, 2, 0)"),
-                (V("1.2.0-alpha"), "Version(1, 2, 0, PreReleaseVersion('alpha'))"),
-                (V("1.2.0+build"), "Version(1, 2, 0, BuildVersion('build'))")
+                (V("1.2.0"), "SemanticVersion(1, 2, 0)"),
+                (V("1.2.0-alpha"), "SemanticVersion(1, 2, 0, PreReleaseVersion('alpha'))"),
+                (V("1.2.0+build"), "SemanticVersion(1, 2, 0, BuildVersion('build'))")
                 ]
         for version, r_version_string in r_data:
             self.assertEqual(repr(version), r_version_string)
@@ -69,31 +69,6 @@ class TestVersion(unittest.TestCase):
         for r_version_string in r_version_strings:
             version = V(r_version_string)
             self.assertEqual(str(version), r_version_string)
-
-    def test_from_loose_string(self):
-        r_version = Version(1, 2, 0)
-        version = Version.from_loose_string("1.2")
-
-        self.assertEqual(r_version, version)
-
-        r_version = Version(1, 0, 0)
-        version = Version.from_loose_string("1")
-
-        r_version = Version(1, 2, 0, build=BuildVersion.from_string("123"))
-        version = Version.from_loose_string("1.2+123")
-
-        self.assertEqual(r_version, version)
-
-        r_version = Version(1, 2, 0, pre_release=PreReleaseVersion.from_string("123"))
-        version = Version.from_loose_string("1.2-123")
-
-        self.assertEqual(r_version, version)
-
-        r_version = Version(1, 2, 0, PreReleaseVersion.from_string("123"),
-                            BuildVersion.from_string("456"))
-        version = Version.from_loose_string("1.2-123+456")
-
-        self.assertEqual(r_version, version)
 
 class TestVersionComparison(unittest.TestCase):
     def test_simple_eq(self):
@@ -191,3 +166,30 @@ class TestMinMaxVersion(unittest.TestCase):
         self.assertTrue(max_version >= V("99.99.99"))
         self.assertFalse(max_version < V("99.99.99"))
         self.assertFalse(max_version <= V("99.99.99"))
+
+    def test_min_reflexive(self):
+        m = MinVersion()
+
+        self.assertFalse(m < m)
+        self.assertTrue(m <= m)
+        self.assertFalse(m > m)
+        self.assertTrue(m >= m)
+
+    def test_max_reflexive(self):
+        m = MaxVersion()
+
+        self.assertFalse(m < m)
+        self.assertTrue(m <= m)
+        self.assertFalse(m > m)
+        self.assertTrue(m >= m)
+
+    def test_min_max_version(self):
+        mi = MinVersion()
+        ma = MaxVersion()
+
+        self.assertTrue(mi < ma)
+        self.assertTrue(mi <= ma)
+        self.assertFalse(mi > ma)
+        self.assertFalse(mi >= ma)
+        self.assertFalse(mi == ma)
+        self.assertTrue(mi != ma)

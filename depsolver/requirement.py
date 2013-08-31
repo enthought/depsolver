@@ -15,9 +15,9 @@ from depsolver.requirement_parser \
         RawRequirementParser
 from depsolver.version \
     import \
-        MaxVersion, MinVersion, Version
+        MaxVersion, MinVersion, SemanticVersion
 
-V = Version.from_string
+V = SemanticVersion.from_string
 
 class Requirement(object):
     """Requirements instances represent a 'package requirement', that is a

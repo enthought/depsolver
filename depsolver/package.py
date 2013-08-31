@@ -9,7 +9,7 @@ from depsolver.requirement \
         Requirement
 from depsolver.version \
     import \
-        Version
+        SemanticVersion, Version
 from depsolver.bundled.traitlets \
     import \
         HasTraits, Instance, List, Long, Unicode
@@ -18,7 +18,7 @@ from depsolver.errors \
         DepSolverError
 
 R = Requirement.from_string
-V = Version.from_string
+V = SemanticVersion.from_string
 
 _SECTION_RE = re.compile("(depends|provides|replaces|conflicts|suggests)\s*\((.*)\)")
 

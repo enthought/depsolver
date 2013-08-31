@@ -16,12 +16,8 @@ from depsolver.repository \
 from depsolver.requirement \
     import \
         Requirement
-from depsolver.version \
-    import \
-        Version
 
 P = PackageInfo.from_string
-V = Version.from_string
 R = Requirement.from_string
 
 class TestPool(unittest.TestCase):

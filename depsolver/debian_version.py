@@ -1,5 +1,7 @@
 import re
 
+import six
+
 from depsolver.compat \
     import \
         izip_longest
@@ -56,6 +58,12 @@ def is_valid_debian_version(version):
     except InvalidVersion:
         return False
 
+if six.PY3:
+    def _cmp(x, y):
+        return (x > y) - (x < y)
+else:
+    _cmp = cmp
+
 def _compare_part(left, right):
     """
     Compare two version strings according to the Debian comparison algorithm.
@@ -80,11 +88,11 @@ def _compare_part(left, right):
             left_part, right_part = int(left_part), int(right_part)
         except ValueError:
             for left_part_c, right_part_c in izip_longest(left_part, right_part, fillvalue=""):
-                st = cmp(_COMPARABLE[left_part_c], _COMPARABLE[right_part_c])
+                st = _cmp(_COMPARABLE[left_part_c], _COMPARABLE[right_part_c])
                 if st != 0:
                     return st
         else:
-            st = cmp(left_part, right_part)
+            st = _cmp(left_part, right_part)
             if st != 0:
                 return st
     return 0
@@ -92,6 +100,18 @@ def _compare_part(left, right):
 class ComparablePart(object):
     def __init__(self, version):
         self._version = version
+
+    def __eq__(self, other):
+        if isinstance(other, ComparablePart):
+            return _compare_part(self._version, other._version) == 0
+        else:
+            return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, ComparablePart):
+            return _compare_part(self._version, other._version) == -1
+        else:
+            return NotImplemented
 
     def __cmp__(self, other):
         if isinstance(other, ComparablePart):
@@ -138,3 +158,20 @@ class DebianVersion(Version):
             return cmp(self._comparable_parts, other._comparable_parts)
         else:
             return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, DebianVersion):
+            return self._comparable_parts == other._comparable_parts
+        else:
+            return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, DebianVersion):
+            return self._comparable_parts < other._comparable_parts
+        else:
+            return NotImplemented
+
+if six.PY3:
+    import functools
+    ComparablePart = functools.total_ordering(ComparablePart)
+    DebianVersion = functools.total_ordering(DebianVersion)

@@ -271,35 +271,11 @@ class SemanticVersion(Version):
     def __hash__(self):
         return hash(repr(self))
 
-    def __eq__(self, other):
-        if other is None:
-            return False
-        if not isinstance(other, SemanticVersion):
+    def __cmp__(self, other):
+        if isinstance(other, SemanticVersion):
+            return cmp(self._comparable_parts, other._comparable_parts)
+        else:
             return NotImplemented
-        self._ensure_can_compare(other)
-        return self._comparable_parts == other._comparable_parts
-
-    def __ne__(self, other):
-        if other is None:
-            return True
-        if not isinstance(other, SemanticVersion):
-            return NotImplemented
-        return not self.__eq__(other)
-
-    def __lt__(self, other):
-        if not isinstance(other, SemanticVersion):
-            return NotImplemented
-        self._ensure_can_compare(other)
-        return self._comparable_parts < other._comparable_parts
-
-    def __le__(self, other):
-        return self < other or self == other
-
-    def __gt__(self, other):
-        return not (self < other or self == other)
-
-    def __ge__(self, other):
-        return self > other or self == other
 
 class MinVersion(Version):
     """Subclass of Version such as MinVersion() < v for any Version instance v
@@ -308,7 +284,7 @@ class MinVersion(Version):
         return other.__class__ == self.__class__
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __lt__(self, other):
         return not self == other

@@ -11,9 +11,9 @@ from depsolver.requirement_parser \
         Any, Equal, GEQ, LEQ
 from depsolver.version \
     import \
-        Version
+        SemanticVersion
 
-V = Version.from_string
+V = SemanticVersion.from_string
 
 class TestRequirementParser(unittest.TestCase):
     def test_simple(self):

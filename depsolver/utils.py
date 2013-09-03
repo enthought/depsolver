@@ -6,6 +6,9 @@ import six
 from depsolver.errors \
     import \
         DepSolverError
+from depsolver.bundled.traitlets \
+    import \
+        TraitType, Undefined
 
 def _invert_dependencies(deps):
     """Given a dictionary of edge -> dependencies representing a DAG, "invert"
@@ -131,3 +134,12 @@ class CachedScheduler(object):
             res = self._scheduler.compute_priority()
             self._cached = res
         return self._cached
+
+class Callable(TraitType):
+    info_text = "a callable object"
+
+    def validate(self, obj, value):
+        if value is Undefined or callable(value):
+            return value
+        else:
+            self.error(obj, value)

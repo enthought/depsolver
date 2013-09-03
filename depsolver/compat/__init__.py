@@ -11,3 +11,5 @@ else:
     from functools import cmp_to_key
     def sorted_with_cmp(x, cmp):
         return sorted(x, key=cmp_to_key(cmp))
+
+from depsolver.compat._itertools import izip_longest

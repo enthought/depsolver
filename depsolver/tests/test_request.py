@@ -17,10 +17,10 @@ from depsolver.requirement \
         Requirement
 from depsolver.version \
     import \
-        Version
+        SemanticVersion
 
 P = PackageInfo.from_string
-V = Version.from_string
+V = SemanticVersion.from_string
 R = Requirement.from_string
 
 class TestRequest(unittest.TestCase):

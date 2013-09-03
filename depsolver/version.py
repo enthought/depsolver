@@ -156,10 +156,13 @@ class BuildVersion(object):
         return not self <= other
 
 class Version(object):
-    """Create a Version instance
+    pass
 
-    Version objects represent a full version according to the semantic version
-    specs (version 2.0.0-rc1 of the spec). The main features of this class are
+class SemanticVersion(Version):
+    """Create a SemanticVersion instance
+
+    Instances represent a full version according to the semantic version specs
+    (version 2.0.0-rc1 of the spec). The main features of this class are
     validation and version comparison.
 
     Arguments
@@ -176,36 +179,8 @@ class Version(object):
         The build version part of the version
     """
     @classmethod
-    def from_loose_string(cls, version_string):
-        m = _LOOSE_VERSION_RE.match(version_string)
-        if m is None:
-            raise InvalidVersion("Version string %s is not a valid loose string" % (version_string,))
-        else:
-            version = m.group("version")
-            ndots = version.count(".")
-            if ndots == 2:
-                major, minor, patch = version.split(".")
-            elif ndots == 1:
-                major, minor = version.split(".")
-                patch = '0'
-            else:
-                major = version
-                minor = '0'
-                patch = '0'
-
-            pre_release = m.group("pre_release")
-            if pre_release is not None:
-                pre_release = PreReleaseVersion.from_string(pre_release)
-
-            build = m.group("build")
-            if build is not None:
-                build = BuildVersion.from_string(build)
-
-            return cls(major, minor, patch, pre_release, build)
-
-    @classmethod
     def from_string(cls, version_string):
-        """Creates a Version instance from a string specifiction
+        """Creates a SemanticVersion instance from a string specifiction
 
         Arguments
         ---------
@@ -214,8 +189,8 @@ class Version(object):
 
         Examples
         --------
-        >>> v = Version.from_string("1.3.1")
-        >>> v = Version.from_string("1.3.1-dev2+post1")
+        >>> v = SemanticVersion.from_string("1.3.1")
+        >>> v = SemanticVersion.from_string("1.3.1-dev2+post1")
         """
         if not is_version_valid(version_string):
             raise InvalidVersion("Version string %r is not valid" % (version_string,))
@@ -270,8 +245,14 @@ class Version(object):
         self._comparable_parts.append(self.pre_release)
         self._comparable_parts.append(self.build)
 
+    # Comparison API
+    def _ensure_can_compare(self, other):
+        if not isinstance(other, Version):
+            raise TypeError("cannot compare %s and %s"
+                    % (type(self).__name__, type(other).__name__))
+
     def __repr__(self):
-        s = "Version(%s, %s, %s" % (self.major, self.minor, self.patch)
+        s = "SemanticVersion(%s, %s, %s" % (self.major, self.minor, self.patch)
         if self.pre_release:
             s += ", %r" % (self.pre_release,)
         if self.build:
@@ -287,25 +268,27 @@ class Version(object):
             s += str(self.build)
         return s
 
-    # Comparison API
-    def _ensure_can_compare(self, other):
-        if not isinstance(other, Version):
-            raise TypeError("cannot compare %s and %s"
-                    % (type(self).__name__, type(other).__name__))
+    def __hash__(self):
+        return hash(repr(self))
 
     def __eq__(self, other):
         if other is None:
             return False
+        if not isinstance(other, SemanticVersion):
+            return NotImplemented
         self._ensure_can_compare(other)
         return self._comparable_parts == other._comparable_parts
 
-    def __hash__(self):
-        return hash(repr(self))
-
     def __ne__(self, other):
+        if other is None:
+            return True
+        if not isinstance(other, SemanticVersion):
+            return NotImplemented
         return not self.__eq__(other)
 
     def __lt__(self, other):
+        if not isinstance(other, SemanticVersion):
+            return NotImplemented
         self._ensure_can_compare(other)
         return self._comparable_parts < other._comparable_parts
 
@@ -321,9 +304,6 @@ class Version(object):
 class MinVersion(Version):
     """Subclass of Version such as MinVersion() < v for any Version instance v
     (unless v is MinVersion()."""
-    def __init__(self):
-        pass
-
     def __eq__(self, other):
         return other.__class__ == self.__class__
 
@@ -331,20 +311,23 @@ class MinVersion(Version):
         return not self.__eq__(other)
 
     def __lt__(self, other):
+        return not self == other
+
+    def __le__(self, other):
         return True
 
     def __gt__(self, other):
         return False
 
-    def __str__(self):
-        return "MinVersion"
+    def __ge__(self, other):
+        return self == other
+
+    def __hash__(self):
+        return hash("MinVersion")
 
 class MaxVersion(Version):
     """Subclass of Version such as MaxVersion() > v for any Version instance v
     (unless v is MaxVersion()."""
-    def __init__(self):
-        pass
-
     def __eq__(self, other):
         return other.__class__ == self.__class__
 
@@ -354,8 +337,14 @@ class MaxVersion(Version):
     def __lt__(self, other):
         return False
 
+    def __le__(self, other):
+        return self == other
+
     def __gt__(self, other):
+        return not self == other
+
+    def __ge__(self, other):
         return True
 
-    def __str__(self):
-        return "MaxVersion"
+    def __hash__(self):
+        return hash("MaxVersion")

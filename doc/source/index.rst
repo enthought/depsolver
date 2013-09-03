@@ -16,6 +16,6 @@ Its intended features are:
         - ability to easily mix and match multiple repositories
         - allow for different policies for upgrade/update
 
-As of today (Feb 2013), it is very experimental and not recommended for production usage.
+As of today (|today|), it is very experimental and not recommended for production usage.
 
 .. include:: contents.rst.inc

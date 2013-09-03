@@ -31,9 +31,6 @@ from depsolver.requirement \
 from depsolver.requirement_parser \
     import \
         RawRequirementParser
-from depsolver.version \
-    import \
-        Version
 
 COMMON_IMPORTS = """\
 use Composer\DependencyResolver\Decisions;
@@ -61,7 +58,6 @@ COMPOSER_PATH = "/Users/cournape/src/dev/composer/composer-git"
 
 P = PackageInfo.from_string
 R = Requirement.from_string
-V = Version.from_string
 
 def requirement_to_php_string(req):
     s = str(req)

@@ -15,9 +15,7 @@ from depsolver.requirement_parser \
         RawRequirementParser
 from depsolver.version \
     import \
-        MaxVersion, MinVersion, Version
-
-V = Version.from_string
+        MaxVersion, MinVersion, SemanticVersion
 
 class Requirement(object):
     """Requirements instances represent a 'package requirement', that is a
@@ -31,7 +29,7 @@ class Requirement(object):
         Sequence of constraints
     """
     @classmethod
-    def from_string(cls, requirement_string):
+    def from_string(cls, requirement_string, version_factory=SemanticVersion.from_string):
         """Creates a new Requirement from a requirement string.
 
         Arguments
@@ -50,7 +48,7 @@ class Requirement(object):
         >>> Requirement.from_string("numpy >= 1.3.0")
         numpy >= 1.3.0
         """
-        parser = RequirementParser()
+        parser = RequirementParser(version_factory)
         requirements = parser.parse(requirement_string)
         if len(requirements) != 1:
             raise DepSolverError("Invalid requirement string %r" % requirement_string)
@@ -58,7 +56,7 @@ class Requirement(object):
             return requirements[0]
 
     @classmethod
-    def from_package_string(cls, package_string):
+    def from_package_string(cls, package_string, version_factory=SemanticVersion.from_string):
         """Creates a new Requirement from a package string.
 
         This is equivalent to the requirement 'package.name == package.version'
@@ -69,9 +67,9 @@ class Requirement(object):
             The package string, e.g. 'numpy-1.3.0'
         """
         name, version = parse_package_full_name(package_string)
-        return cls(name, [Equal(version)])
+        return cls(name, [Equal(version)], version_factory)
 
-    def __init__(self, name, specs):
+    def __init__(self, name, specs, version_factory=SemanticVersion.from_string):
         self.name = name
 
         self._min_bound = MinVersion()
@@ -85,31 +83,31 @@ class Requirement(object):
             self._equal = None
         elif len(equals) == 1:
             self._cannot_match = False
-            self._equal = V(equals.pop().version)
+            self._equal = version_factory(equals.pop().version)
             self._min_bound = self._max_bound = self._equal
         else:
             self._cannot_match = False
             self._equal = None
 
-        self._not_equals = set(V(req.version) for req in specs if isinstance(req, Not))
+        self._not_equals = set(version_factory(req.version) for req in specs if isinstance(req, Not))
 
         gts = [req for req in specs if isinstance(req, GT)]
         lts = [req for req in specs if isinstance(req, LT)]
 
         geq = [req for req in specs if isinstance(req, GEQ)]
         geq.extend(gts)
-        geq_versions = [V(g.version) for g in geq]
+        geq_versions = [version_factory(g.version) for g in geq]
         if len(geq_versions) > 0:
             self._min_bound = max(geq_versions)
 
         leq = [req for req in specs if isinstance(req, LEQ)]
         leq.extend(lts)
-        leq_versions = [V(l.version) for l in leq]
+        leq_versions = [version_factory(l.version) for l in leq]
         if len(leq_versions) > 0:
             self._max_bound = min(leq_versions)
 
-        self._not_equals.update(V(gt.version) for gt in gts)
-        self._not_equals.update(V(lt.version) for lt in lts)
+        self._not_equals.update(version_factory(gt.version) for gt in gts)
+        self._not_equals.update(version_factory(lt.version) for lt in lts)
 
         if self._min_bound > self._max_bound:
             self._cannot_match = True
@@ -188,12 +186,13 @@ class Requirement(object):
             return False
 
 class RequirementParser(object):
-    def __init__(self):
+    def __init__(self, version_factory=SemanticVersion.from_string):
         self._parser = RawRequirementParser()
+        self.version_factory = version_factory
 
     def iter_parse(self, requirement_string):
         for distribution_name, specs in self._parser.parse(requirement_string).items():
-            yield Requirement(distribution_name, specs)
+            yield Requirement(distribution_name, specs, self.version_factory)
 
     def parse(self, requirement_string):
         return [r for r in self.iter_parse(requirement_string)]

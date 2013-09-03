@@ -181,7 +181,7 @@ class Pool(HasTraits):
         True
         """
         if requirement.name == candidate.name:
-            candidate_requirement = Requirement.from_package_string(candidate.unique_name)
+            candidate_requirement = Requirement.from_package_string(candidate.unique_name, candidate.version_factory)
             if requirement.is_universal or candidate_requirement.matches(requirement):
                 return MATCH
             else:

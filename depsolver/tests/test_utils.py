@@ -5,12 +5,15 @@ if six.PY3:
 else:
     import unittest2 as unittest
 
+from depsolver.bundled.traitlets \
+    import \
+        HasTraits, TraitError
 from depsolver.errors \
     import \
         DepSolverError
 from depsolver.utils \
     import \
-        CachedScheduler, Scheduler
+        Callable, CachedScheduler, Scheduler
 
 class TestScheduler(unittest.TestCase):
     def test_simple(self):
@@ -68,3 +71,11 @@ class TestCachedScheduler(unittest.TestCase):
         r_priority = dict((name, i) for i, name in \
                           enumerate(["first", "second", "third", "fourth", "fifth"]))
         self.assertEqual(scheduler.compute_priority(), r_priority)
+
+class TestCallableTrait(unittest.TestCase):
+    def test_simple(self):
+        class Foo(HasTraits):
+            func = Callable()
+
+        foo = Foo()
+        self.assertRaises(TraitError, lambda: Foo(func="yo"))

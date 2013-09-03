@@ -30,9 +30,6 @@ from depsolver.requirement \
 from depsolver.solver.rules_generator \
     import \
         RulesGenerator
-from depsolver.version \
-    import \
-        Version
 
 from depsolver.bundled.traitlets \
     import \
@@ -48,7 +45,6 @@ DATA = op.join(op.dirname(__file__), "data", "rules_generator")
 
 P = PackageInfo.from_string
 R = Requirement.from_string
-V = Version.from_string
 
 TEMPLATE = """\
 <?php

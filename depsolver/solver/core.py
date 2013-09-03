@@ -16,9 +16,9 @@ from depsolver.bundled.traitlets \
 from depsolver.solver.decisions \
     import \
         DecisionsSet
-from depsolver.operations \
+from depsolver.solver.operations \
     import \
-        Install, Remove, Update
+        Install, Update
 from depsolver.pool \
     import \
         Pool
@@ -37,6 +37,9 @@ from depsolver.solver.rules_generator \
 from depsolver.solver.rules_watch_graph \
     import \
         RulesWatchGraph, RuleWatchNode
+from depsolver.solver.transaction \
+    import \
+        Transaction
 
 _BRANCH_INFO = collections.namedtuple("_BranchInfo", ["literals", "level"])
 
@@ -68,6 +71,10 @@ class Solver(HasTraits):
                 _branches=branches, **kw)
 
     def solve(self, request):
+        decisions = self._solve(request)
+        return self._calculate_transaction(decisions)
+
+    def _solve(self, request):
         decisions, rules_set = self._prepare_solver(request)
         self._make_assertion_rules_decisions(decisions, rules_set)
 
@@ -81,6 +88,10 @@ class Solver(HasTraits):
                 decisions.decide(-package_id, 1, "")
 
         return decisions
+
+    def _calculate_transaction(self, decisions):
+        transaction = Transaction(self.pool, self.policy, self.installed_map, decisions)
+        return transaction.compute_operations()
 
     def _setup_install_map(self, jobs):
         for package in self.installed_repository.iter_packages():

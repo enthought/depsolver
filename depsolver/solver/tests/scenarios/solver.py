@@ -1,38 +1,7 @@
-import collections
-import glob
-import json
-import subprocess
-import tempfile
-
 import os.path as op
 
 import tempita
-import yaml
 
-from depsolver._package_utils \
-    import \
-        parse_package_full_name
-from depsolver.package \
-    import \
-        parse_package_string, PackageInfo
-from depsolver.pool \
-    import \
-        Pool
-from depsolver.repository \
-    import \
-        Repository
-from depsolver.request \
-    import \
-        Request
-from depsolver.requirement \
-    import \
-        Requirement
-from depsolver.solver.decisions \
-    import \
-        DecisionsSet
-from depsolver.solver.rules_generator \
-    import \
-        RulesGenerator
 from depsolver.solver.core \
     import \
         Solver
@@ -48,9 +17,6 @@ from depsolver.solver.tests.scenarios.common \
         job_to_php_constraints, run_php_scenarios
 
 DATA = op.join(op.dirname(__file__), "data", "rules_generator")
-
-P = PackageInfo.from_string
-R = Requirement.from_string
 
 TEMPLATE = """\
 <?php
@@ -114,22 +80,33 @@ class DebuggingSolver extends Solver
                  printf("-%s-%s;%s\\n", $package->getName(), $package->getPrettyVersion(), $package_id);
              }
         }
-        /*
+    }
+
+    public function print_operations(Request $request)
+    {
+        $operations = $this->solve($request);
         foreach ($operations as $operation) {
-             print("$operation\n");
+             print("$operation\\n");
         }
-        */
     }
 }
 
 $policy = new DefaultPolicy();
+"""
 
+DECISIONS_TEMPLATE = TEMPLATE + """
 $solver = new DebuggingSolver($policy, $pool, $installed_repo);
 $solver->print_decisions($request);
 """
 
-class SolverScenario(HasTraits):
+OPERATIONS_TEMPLATE = TEMPLATE + """
+$solver = new DebuggingSolver($policy, $pool, $installed_repo);
+$solver->print_operations($request);
+"""
+
+class SolverDecisionsScenario(HasTraits):
     solver = Instance(Solver)
+    template_string = Unicode(DECISIONS_TEMPLATE)
 
     _base_scenario = Instance(BaseScenario)
 
@@ -155,8 +132,11 @@ class SolverScenario(HasTraits):
         solver = Solver(base_scenario.pool, base_scenario.installed_repository)
         return cls(_base_scenario=base_scenario, solver=solver)
 
-    def compute(self):
-        return self.solver.solve(self.request)
+    def compute_decisions_set(self):
+        """
+        Compute the decisions set for this scenario.
+        """
+        return self.solver._solve(self.request)
 
     def to_php(self, filename, composer_location=None):
         if composer_location is None:
@@ -164,7 +144,7 @@ class SolverScenario(HasTraits):
         else:
             bootstrap_path = "'%s'" % op.join(composer_location, "src", "bootstrap.php")
 
-        template = tempita.Template(TEMPLATE)
+        template = tempita.Template(self.template_string)
 
         remote_packages = self.remote_repository.list_packages()
         installed_packages = self.installed_repository.list_packages()
@@ -180,8 +160,19 @@ class SolverScenario(HasTraits):
         with open(filename, "wt") as fp:
             fp.write(template.substitute(variables))
 
+class SolverOperationsScenario(SolverDecisionsScenario):
+    template_string = Unicode(OPERATIONS_TEMPLATE)
+
+    def compute_operations(self):
+        """
+        Compute the operations for this scenario.
+        """
+        return self.solver.solve(self.request)
+
 if __name__ == "__main__":
     data_directory = op.join(op.dirname(__file__), "data", "rules_generator")
-    test_directory = op.join(op.dirname(__file__), "data", "solver")
+    decisions_test_directory = op.join(op.dirname(__file__), "data", "solver_decisions")
+    operations_test_directory = op.join(op.dirname(__file__), "data", "solver_operations")
 
-    run_php_scenarios(data_directory, SolverScenario, lambda x: x, test_directory)
+    run_php_scenarios(data_directory, SolverDecisionsScenario, lambda x: x, decisions_test_directory)
+    run_php_scenarios(data_directory, SolverOperationsScenario, lambda x: x, operations_test_directory)

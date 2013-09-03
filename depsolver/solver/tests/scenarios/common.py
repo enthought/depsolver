@@ -54,7 +54,8 @@ use Composer\Repository\WritableArrayRepository;
 
 """
 
-COMPOSER_PATH = "/Users/cournape/src/dev/composer/composer-git"
+#COMPOSER_PATH = "/Users/cournape/src/dev/composer/composer-git"
+COMPOSER_PATH = "/home/davidc/src/projects/composer-git"
 
 P = PackageInfo.from_string
 R = Requirement.from_string

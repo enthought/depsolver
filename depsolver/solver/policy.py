@@ -96,7 +96,6 @@ class DefaultPolicy(object):
     def find_updated_packages(self, pool, installed_map, package):
         packages = []
 
-        #print package, pool.what_provides(R(package.name))
         for candidate in pool.what_provides(R(package.name)):
             if candidate != package:
                 packages.append(candidate)

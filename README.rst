@@ -7,10 +7,10 @@ Example::
 
     # Simple scenario: nothing installed, install numpy, 2 versions available
     # in the repository
-    from depsolver import Package, Pool, Repository, Requirement, Solver
+    from depsolver import PackageInfo, Pool, Repository, Request, Requirement, Solver
 
-    numpy_1_6_1 = Package.from_string("numpy-1.6.1")
-    numpy_1_7_0 = Package.from_string("numpy-1.7.0")
+    numpy_1_6_1 = PackageInfo.from_string("numpy-1.6.1")
+    numpy_1_7_0 = PackageInfo.from_string("numpy-1.7.0")
 
     repo = Repository([numpy_1_6_1, numpy_1_7_0])
     installed_repo = Repository()
@@ -18,8 +18,10 @@ Example::
 
     # only one operation here: install numpy (most recent available version
     # automatically picked up)
-    requirement = Requirement.from_string("numpy")
-    decisions = Solver(pool, installed_repo).solve(requirement)
+    request = Request(pool)
+    request.install(Requirement.from_string("numpy"))
+    for operation in Solver(pool, installed_repo).solve(request):
+        print operation
 
 Its main features:
 
@@ -28,7 +30,9 @@ Its main features:
         - only depends on the six library
         - use SAT solver to solve dependencies
         - handle dependencies, provides, conflict and replaces
-        - supports multiple version formats (semver `semantic versions RFC <http://www.semver.org>`_ and debian formats currently supported)
+        - supports multiple version formats (semver
+          `semantic versions RFC <http://www.semver.org>`_ and debian formats
+          currently supported)
         - reasonably well tested (> 90 % coverage)
 
 It is still experimental, and subject to arbitrary changes.

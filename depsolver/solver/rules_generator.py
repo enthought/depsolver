@@ -154,7 +154,7 @@ class RulesGenerator(HasTraits):
             else:
                 literals.append(dependency.id)
 
-        return PackageRule(self.pool, literals, reason, reason_details)
+        return PackageRule(self.pool, literals, reason, reason_details, version_factory=package.version_factory)
 
     def _create_conflicts_rule(self, issuer, provider, reason, reason_details=""):
         """

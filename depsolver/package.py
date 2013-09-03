@@ -7,6 +7,9 @@ from depsolver._package_utils \
 from depsolver.requirement \
     import \
         Requirement
+from depsolver.utils \
+    import \
+        Callable
 from depsolver.version \
     import \
         SemanticVersion, Version
@@ -18,20 +21,15 @@ from depsolver.errors \
         DepSolverError
 
 R = Requirement.from_string
-V = SemanticVersion.from_string
 
 _SECTION_RE = re.compile("(depends|provides|replaces|conflicts|suggests)\s*\((.*)\)")
 
-def _parse_name_version_part(name_version, loose):
+def _parse_name_version_part(name_version, version_factory):
     name, version_string = parse_package_full_name(name_version)
-    if loose:
-        version = Version.from_loose_string(version_string)
-    else:
-        version = V(version_string)
-
+    version = version_factory(version_string)
     return name, version
 
-def _parse_requirements_string(s):
+def _parse_requirements_string(s, version_factory):
     m = _SECTION_RE.search(s)
     if m is None:
         raise ValueError("invalid requirement string: %r" % s)
@@ -39,16 +37,16 @@ def _parse_requirements_string(s):
         requirements_string = m.groups()[1]
         requirements = set()
         for requirement_string in requirements_string.split(","):
-            requirements.add(R(requirement_string))
+            requirements.add(R(requirement_string, version_factory))
         return requirements
 
-def parse_package_string(package_string, loose=False):
+def parse_package_string(package_string, version_factory):
     parts = package_string.split(";")
 
     if len(parts) < 1:
         raise ValueError("YO")
 
-    name, version = _parse_name_version_part(parts[0], loose)
+    name, version = _parse_name_version_part(parts[0], version_factory)
 
     dependencies = set()
     provides = set()
@@ -60,15 +58,15 @@ def parse_package_string(package_string, loose=False):
         for part in parts[1:]:
             part = part.strip()
             if part.startswith("depends"):
-                dependencies = _parse_requirements_string(part)
+                dependencies = _parse_requirements_string(part, version_factory)
             elif part.startswith("provides"):
-                provides = _parse_requirements_string(part)
+                provides = _parse_requirements_string(part, version_factory)
             elif part.startswith("conflicts"):
-                conflicts = _parse_requirements_string(part)
+                conflicts = _parse_requirements_string(part, version_factory)
             elif part.startswith("replaces"):
-                replaces = _parse_requirements_string(part)
+                replaces = _parse_requirements_string(part, version_factory)
             elif part.startswith("suggests"):
-                suggests = _parse_requirements_string(part)
+                suggests = _parse_requirements_string(part, version_factory)
             else:
                 raise ValueError("syntax error: %r" % part)
 
@@ -92,6 +90,7 @@ class PackageInfo(HasTraits):
     """
     name = Unicode()
     version = Instance(Version)
+    version_factory = Callable()
 
     dependencies = List(Instance(Requirement))
     provides = List(Instance(Requirement))
@@ -104,7 +103,7 @@ class PackageInfo(HasTraits):
     _repository = Instance("depsolver.repository.Repository")
 
     @classmethod
-    def from_string(cls, package_string):
+    def from_string(cls, package_string, version_factory=SemanticVersion.from_string):
         """Create a new package from a string.
 
         Example
@@ -117,13 +116,15 @@ class PackageInfo(HasTraits):
         True
         """
         name, version, provides, dependencies, conflicts, replaces, suggests \
-                = parse_package_string(package_string)
-        return cls(name=name, version=version, provides=list(provides),
+                = parse_package_string(package_string, version_factory)
+        return cls(name=name, version=version, version_factory=version_factory,
+                   provides=list(provides),
                    dependencies=list(dependencies), conflicts=list(conflicts),
                    replaces=list(replaces), suggests=list(suggests))
 
-    def __init__(self, name, version, dependencies=None, provides=None, conflicts=None,
-                 replaces=None, suggests=None, **kw):
+    def __init__(self, name, version,
+            version_factory=SemanticVersion.from_string, dependencies=None,
+            provides=None, conflicts=None, replaces=None, suggests=None, **kw):
         if dependencies is None:
             dependencies = []
         if provides is None:
@@ -135,6 +136,7 @@ class PackageInfo(HasTraits):
         if suggests is None:
             suggests = []
         super(PackageInfo, self).__init__(name=name, version=version,
+                                          version_factory=version_factory,
                                           dependencies=dependencies,
                                           provides=provides,
                                           conflicts=conflicts,

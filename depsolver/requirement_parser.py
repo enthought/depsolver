@@ -11,21 +11,19 @@ from depsolver.constraints \
         Any, Equal, GEQ, GT, LEQ, LT, Not
 from depsolver.version \
     import \
-        SemanticVersion, _LOOSE_VERSION_RE
-
-V = SemanticVersion.from_string
+        _LOOSE_VERSION_RE
 
 _DEFAULT_SCANNER = re.Scanner([
     (r"[a-zA-Z_]\w*", lambda scanner, token: DistributionNameToken(token)),
-    (r"\d[\w\.\-\+\*]*", lambda scanner, token: VersionToken(token)),
+    (r"[^=><!,\s][^,\s]+", lambda scanner, token: VersionToken(token)),
     (r"==", lambda scanner, token: EqualToken(token)),
     (r">=", lambda scanner, token: GEQToken(token)),
     (r">", lambda scanner, token: GTToken(token)),
     (r"<=", lambda scanner, token: LEQToken(token)),
     (r"<", lambda scanner, token: LTToken(token)),
     (r"!=", lambda scanner, token: NotToken(token)),
-    (r"\*", lambda scanner, token: AnyToken(token)),
     (",", lambda scanner, token: CommaToken(token)),
+    (r"\*", lambda scanner, token: AnyToken(token)),
     (" +", lambda scanner, token: None),
 ])
 

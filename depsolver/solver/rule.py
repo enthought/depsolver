@@ -26,7 +26,7 @@ from depsolver.requirement \
         Requirement
 from depsolver.version \
     import \
-        Version
+        SemanticVersion, Version
 
 _RULE_REASONS = [
     "internal_allow_update",
@@ -100,9 +100,13 @@ class PackageRule(HasTraits):
     @classmethod
     def from_packages(cls, pool, packages, reason, reason_details="", job=None, id=-1):
         literals = [p.id for p in packages]
-        return cls(pool, literals, reason, reason_details, job, id)
+        if len(packages) > 0:
+            return cls(pool, literals, reason, reason_details, job, id, packages[0].version_factory)
+        else:
+            return cls(pool, literals, reason, reason_details, job, id)
 
-    def __init__(self, pool, literals, reason, reason_details="", job=None, id=-1, **kw):
+    def __init__(self, pool, literals, reason, reason_details="", job=None,
+                 id=-1, version_factory=SemanticVersion.from_string, **kw):
         if reason == "job_install":
             if not is_valid_package_name(reason_details):
                 raise DepSolverError(
@@ -110,7 +114,7 @@ class PackageRule(HasTraits):
                         "'job_install' rule")
         elif reason == "package_requires":
             try:
-                Requirement.from_string(reason_details)
+                Requirement.from_string(reason_details, version_factory=version_factory)
             except Exception:
                 raise DepSolverError("Invalid requirement string '%s'" % (reason_details,))
 

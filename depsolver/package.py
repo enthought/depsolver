@@ -42,10 +42,6 @@ def _parse_requirements_string(s, version_factory):
 
 def parse_package_string(package_string, version_factory):
     parts = package_string.split(";")
-
-    if len(parts) < 1:
-        raise ValueError("YO")
-
     name, version = _parse_name_version_part(parts[0], version_factory)
 
     dependencies = set()

@@ -13,6 +13,9 @@ with open(op.join("depsolver", "_version.py"), "wt") as fp:
 def run_setup():
     setup(name="depsolver", version=VERSION,
           packages=["depsolver",
+              "depsolver.bundled",
+              "depsolver.bundled.traitlets",
+              "depsolver.compat",
               "depsolver.solver",
               "depsolver.solver.tests",
               "depsolver.solver.tests.scenarios",

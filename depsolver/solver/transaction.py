@@ -107,7 +107,7 @@ class Transaction(HasTraits):
 
         roots = packages
 
-        for package_id, operation in packages.iteritems():
+        for package_id, operation in six.iteritems(packages):
             package = operation["package"]
 
             if package_id in roots:
@@ -120,7 +120,8 @@ class Transaction(HasTraits):
         return roots
 
     def _transaction_from_maps(self, install_map, update_map, uninstall_map):
-        queue = [operation["package"] for operation in self._find_root_packages(install_map, update_map).itervalues()]
+        root_packages = six.itervalues(self._find_root_packages(install_map, update_map))
+        queue = [operation["package"] for operation in root_packages]
 
         visited = set()
 

@@ -18,6 +18,12 @@ class TestVersionParsing(unittest.TestCase):
         for version in versions:
             self.assertTrue(is_valid_debian_version(version))
 
+    def test_roundtrip(self):
+        versions = ["1.2.0", "1.2.0-0", "0:1.2.0"]
+
+        for version in versions:
+            self.assertEqual(str(V(version)), version)
+
 class TestVersionComparison(unittest.TestCase):
     def test_eq(self):
         self.assertTrue(V("1.2.3") == V("1.2.3"))

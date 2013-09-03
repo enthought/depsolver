@@ -31,19 +31,19 @@ def _compute_comparable():
 _COMPARABLE = _compute_comparable()
 
 def parse_version_string(version):
-    epoch = "0"
-    revision = "0"
+    epoch = None
+    revision = None
 
     if ":" in version:
         epoch, version = version.split(":", 1)
     if "-" in version:
         version, revision = version.split("-", 1)
 
-    if not _EPOCH_RE.match(epoch):
+    if epoch is not None and not _EPOCH_RE.match(epoch):
         raise InvalidVersion("Invalid epoch for debian version: '%s'" % epoch)
     if not _UPSTREAM_VERSION_RE.match(version):
         raise InvalidVersion("Invalid upstream version for debian version: '%s'" % version)
-    if not _DEBIAN_REVISION_RE.match(revision):
+    if revision is not None and not _DEBIAN_REVISION_RE.match(revision):
         raise InvalidVersion("Invalid debian revision for debian version: '%s'" % revision)
 
     return epoch, version, revision

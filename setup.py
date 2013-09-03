@@ -1,3 +1,5 @@
+import setuptools
+
 import os.path as op
 
 from distutils.core import setup
@@ -22,6 +24,7 @@ def run_setup():
               "depsolver.tests",
           ],
           license="BSD",
+          install_requires=["six"],
           author="David Cournapeau",
           author_email="cournape@gmail.com",
           url="http://github.com/enthought/depsolver",

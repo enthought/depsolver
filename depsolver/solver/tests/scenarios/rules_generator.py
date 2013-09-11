@@ -1,10 +1,6 @@
-import collections
-import json
-
 import os.path as op
 
 import tempita
-import yaml
 
 from depsolver._package_utils \
     import \
@@ -14,16 +10,7 @@ from depsolver.compat \
         OrderedDict
 from depsolver.package \
     import \
-        parse_package_string, PackageInfo
-from depsolver.pool \
-    import \
-        Pool
-from depsolver.repository \
-    import \
-        Repository
-from depsolver.request \
-    import \
-        Request
+        PackageInfo
 from depsolver.requirement \
     import \
         Requirement
@@ -37,8 +24,7 @@ from depsolver.bundled.traitlets \
 
 from depsolver.solver.tests.scenarios.common \
     import \
-        COMMON_IMPORTS, COMPOSER_PATH, BaseScenario, packages_list_to_php_json, \
-        requirement_to_php_string, requirement_string_to_php_constraints, \
+        COMMON_IMPORTS, BaseScenario, packages_list_to_php_json, \
         job_to_php_constraints, run_php_scenarios
 
 DATA = op.join(op.dirname(__file__), "data", "rules_generator")

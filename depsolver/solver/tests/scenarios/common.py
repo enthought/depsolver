@@ -1,3 +1,4 @@
+import collections
 import glob
 import json
 import subprocess
@@ -69,6 +70,13 @@ def requirement_to_php_string(req):
         ret.append(" ".join(part[1:]))
     return ", ".join(ret)
 
+def requirements_to_php_dict(requirements):
+    php_dict = collections.defaultdict(list)
+    for requirement in requirements:
+        php_dict[requirement.name].append(requirement_to_php_string(requirement))
+
+    return dict((k, ", ".join(v)) for k, v in php_dict.items())
+
 def packages_list_to_php_json(packages):
     res = []
     for package in packages:
@@ -77,14 +85,10 @@ def packages_list_to_php_json(packages):
                 "name": package.name,
                 "version": str(package.version),
                 "version_normalized": version_normalized,
-                "provide": dict((dep.name, requirement_to_php_string(dep))
-                                  for dep in package.provides),
-                "require": dict((dep.name, requirement_to_php_string(dep))
-                                 for dep in package.dependencies),
-                "conflict": dict((dep.name, requirement_to_php_string(dep))
-                                  for dep in package.conflicts),
-                "replace": dict((dep.name, requirement_to_php_string(dep))
-                                 for dep in package.replaces),
+                "provide": requirements_to_php_dict(package.provides),
+                "require": requirements_to_php_dict(package.dependencies),
+                "conflict": requirements_to_php_dict(package.conflicts),
+                "replace": requirements_to_php_dict(package.replaces),
         })
     return json.dumps(res, indent=4)
 

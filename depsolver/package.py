@@ -1,9 +1,14 @@
-import hashlib
+import collections
 import re
+
+import six
 
 from depsolver._package_utils \
     import \
         parse_package_full_name
+from depsolver.requirement_parser \
+    import \
+        RawRequirementParser
 from depsolver.requirement \
     import \
         Requirement
@@ -16,57 +21,54 @@ from depsolver.version \
 from depsolver.bundled.traitlets \
     import \
         HasTraits, Instance, List, Long, Unicode
-from depsolver.errors \
-    import \
-        DepSolverError
 
 R = Requirement.from_string
 
-_SECTION_RE = re.compile("(depends|provides|replaces|conflicts|suggests)\s*\((.*)\)")
+_DEPENDENCY_TYPES = ["depends", "provides", "replaces", "conflicts", "suggests"]
+_SECTION_RE = re.compile("""\
+        (%(dependency_types)s)
+        \s*
+        \(
+            (.*)
+        \)
+""" % {"dependency_types": "|".join(_DEPENDENCY_TYPES)}, re.VERBOSE)
+
 
 def _parse_name_version_part(name_version, version_factory):
     name, version_string = parse_package_full_name(name_version)
     version = version_factory(version_string)
     return name, version
 
-def _parse_requirements_string(s, version_factory):
+def _parse_requirements_string(parser, s, version_factory):
     m = _SECTION_RE.search(s)
     if m is None:
         raise ValueError("invalid requirement string: %r" % s)
     else:
-        requirements_string = m.groups()[1]
-        requirements = set()
+        requirements_type, requirements_string = m.groups()
+        requirements = collections.defaultdict(list)
         for requirement_string in requirements_string.split(","):
-            requirements.add(R(requirement_string, version_factory))
-        return requirements
+            for distribution_name, specs in parser.parse(requirement_string).items():
+                requirements[distribution_name].extend(specs)
+        return requirements_type, [Requirement(name, reqs, version_factory) for name, reqs in six.iteritems(requirements)]
 
 def parse_package_string(package_string, version_factory):
+    parser = RawRequirementParser()
+
     parts = package_string.split(";")
     name, version = _parse_name_version_part(parts[0], version_factory)
 
-    dependencies = set()
-    provides = set()
-    conflicts = set()
-    replaces = set()
-    suggests = set()
+    requirements_lists = collections.defaultdict(list)
+    for part in parts[1:]:
+        requirement_type, requirements = _parse_requirements_string(parser, part, version_factory)
+        requirements_lists[requirement_type].extend(requirements)
 
-    if len(parts) > 1:
-        for part in parts[1:]:
-            part = part.strip()
-            if part.startswith("depends"):
-                dependencies = _parse_requirements_string(part, version_factory)
-            elif part.startswith("provides"):
-                provides = _parse_requirements_string(part, version_factory)
-            elif part.startswith("conflicts"):
-                conflicts = _parse_requirements_string(part, version_factory)
-            elif part.startswith("replaces"):
-                replaces = _parse_requirements_string(part, version_factory)
-            elif part.startswith("suggests"):
-                suggests = _parse_requirements_string(part, version_factory)
-            else:
-                raise ValueError("syntax error: %r" % part)
+    provides = requirements_lists["provides"]
+    depends = requirements_lists["depends"]
+    conflicts = requirements_lists["conflicts"]
+    replaces = requirements_lists["replaces"]
+    suggests = requirements_lists["suggests"]
 
-    return name, version, provides, dependencies, conflicts, replaces, suggests
+    return name, version, provides, depends, conflicts, replaces, suggests
 
 class PackageInfo(HasTraits):
     """

@@ -1,8 +1,10 @@
-import collections
 import re
 
 import six
 
+from depsolver.compat \
+    import \
+        OrderedDict
 from depsolver.errors \
     import \
         DepSolverError, InvalidVersion
@@ -155,7 +157,7 @@ class RawRequirementParser(object):
             return iter(scanned)
 
     def parse(self, requirement_string):
-        parsed = collections.defaultdict(list)
+        parsed = OrderedDict()
 
         def _parse_full_block(requirement_block):
             distribution, operator, version = requirement_block
@@ -164,8 +166,12 @@ class RawRequirementParser(object):
                     raise InvalidVersion("glob version %s can only be use with == operation" \
                             % version.value)
                 else:
+                    if not distribution.value in parsed:
+                        parsed[distribution.value] = []
                     parsed[distribution.value].extend(_glob_version_to_constraints(version.value))
             else:
+                if not distribution.value in parsed:
+                    parsed[distribution.value] = []
                 parsed[distribution.value].append(_spec_factory(operator)(version.value))
 
         tokens_stream = self.tokenize(requirement_string)
@@ -176,9 +182,13 @@ class RawRequirementParser(object):
                 distribution = requirement_block[0]
                 if not isinstance(requirement_block[1], AnyToken):
                     raise DepSolverError("Invalid requirement block: %s" % requirement_block)
+                if not distribution.value in parsed:
+                    parsed[distribution.value] = []
                 parsed[distribution.value].append(Any())
             elif len(requirement_block) == 1:
                 distribution = requirement_block[0]
+                if not distribution.value in parsed:
+                    parsed[distribution.value] = []
                 parsed[distribution.value].append(Any())
             else:
                 raise DepSolverError("Invalid requirement block: %s" % requirement_block)

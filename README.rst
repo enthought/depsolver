@@ -3,7 +3,7 @@
 
 depsolver is a package dependency solver in python.
 
-Example::
+Examples::
 
     # Simple scenario: nothing installed, install numpy, 2 versions available
     # in the repository
@@ -20,6 +20,30 @@ Example::
     # automatically picked up)
     request = Request(pool)
     request.install(Requirement.from_string("numpy"))
+    for operation in Solver(pool, installed_repo).solve(request):
+        print operation
+
+A more complex scenario which currently fails with pip
+(https://github.com/pypa/pip/issues/174)::
+
+    #  - A requires B and C
+    #  - B requires D <= 1.1
+    #  - C requires D <= 0.9
+
+    a_1_0_0 = PackageInfo.from_string("A-1.0.0; depends (B, C)")
+    b_1_0_0 = PackageInfo.from_string("B-1.0.0; depends (D <= 1.1.0)")
+    c_1_0_0 = PackageInfo.from_string("C-1.0.0; depends (D <= 0.9.0)")
+    d_1_1_0 = PackageInfo.from_string("D-1.1.0")
+    d_0_9_0 = PackageInfo.from_string("D-0.9.0")
+
+    repo = Repository([a, b, c, d_1_1_0, d_0_9_0])
+    installed_repo = Repository()
+    pool = Pool([repo, installed_repo])
+
+    # only one operation here: install numpy (most recent available version
+    # automatically picked up)
+    request = Request(pool)
+    request.install(Requirement.from_string("A"))
     for operation in Solver(pool, installed_repo).solve(request):
         print operation
 

@@ -40,8 +40,8 @@ A more complex scenario which currently fails with pip
     installed_repo = Repository()
     pool = Pool([repo, installed_repo])
 
-    # only one operation here: install numpy (most recent available version
-    # automatically picked up)
+    # despolver resolves each dependency 'globally', and does not install
+    # D-1.1.0 as pip currently does
     request = Request(pool)
     request.install(Requirement.from_string("A"))
     for operation in Solver(pool, installed_repo).solve(request):

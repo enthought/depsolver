@@ -55,7 +55,7 @@ use Composer\Repository\WritableArrayRepository;
 
 """
 
-#COMPOSER_PATH = "/Users/cournape/src/dev/composer/composer-git"
+COMPOSER_PATH = "/Users/cournape/src/dev/composer/composer-git"
 COMPOSER_PATH = "/home/davidc/src/projects/composer-git"
 
 P = PackageInfo.from_string
@@ -175,6 +175,7 @@ def run_php_scenarios(data_directory, scenario_class, post_process, test_directo
     if test_directory is None:
         test_directory = data_directory
 
+    print COMPOSER_PATH
     for path in glob.glob(op.join(data_directory, "*.yaml")):
         print(path)
         php_file = op.splitext(path)[0] + ".php"

@@ -78,6 +78,10 @@ class Solver(HasTraits):
         decisions, rules_set = self._prepare_solver(request)
         self._make_assertion_rules_decisions(decisions, rules_set)
 
+        print ">>> make assertion rules"
+        for decision in decisions:
+            print decision
+        print "<<<"
         watch_graph = RulesWatchGraph()
         for rule in rules_set:
             watch_graph.insert(RuleWatchNode(rule))
@@ -180,6 +184,8 @@ class Solver(HasTraits):
 
         returns the new solver level or 0 if unsolvable
         """
+
+        print("PROPAGATE AND LEARN: {}, {}, '{}' (len {}), {}".format(level, literal, disable_rules, len(disable_rules), rule))
         level += 1
 
         decisions.decide(literal, level, rule)
@@ -208,10 +214,10 @@ class Solver(HasTraits):
             level = new_level
             self._revert(level)
 
-            rules_set.add_rule(new_ruile, "learnt")
+            rules_set.add_rule(new_rule, "learnt")
             self._learnt_why[new_rule.id] = why
 
-            rule_node = RuleWatchNode(new_ule)
+            rule_node = RuleWatchNode(new_rule)
             rule_node.watch2_on_highest(decisions)
             watch_graph.insert(rule_node)
 
@@ -222,6 +228,7 @@ class Solver(HasTraits):
         literals = self.policy.select_preferred_packages(self.pool,
                 self.installed_map, decision_queue)
 
+        print "selected literals: {}".format(literals)
         if len(literals) == 0:
             raise DepSolverError("Internal error in solver.")
         else:
@@ -245,12 +252,10 @@ class Solver(HasTraits):
         # with step 1
 
         decision_queue = []
-        decision_supplement_queue = []
         disable_rules = []
 
         level = 1
         system_level = level + 1
-        installed_pos = 0
 
         while True:
             if level == 1:
@@ -288,12 +293,17 @@ class Solver(HasTraits):
                                 break
                 system_level = level + 1
 
+            print ">>> After job rules"
+            for decision in decisions:
+                print decision
+            print "<<<"
             if level < system_level:
                 system_level = level
 
             rule_id = 0
             n = 0
             while n < len(rules_set):
+                print("rule index {}, counter {}".format(rule_id, n))
                 if rule_id == len(rules_set):
                     rule_id = 0
 
@@ -314,6 +324,13 @@ class Solver(HasTraits):
                     continue
 
                 o_level = level
+                print "Select and Install"
+                print "\tdecisions: {}".format(decisions)
+                print "\tlevel: {}".format(level)
+                print "\tdecision_queue: {}".format(decision_queue)
+                print "\tdisable_rules: {}".format(disable_rules)
+                print "\trule: {}".format(rule)
+                print "\tliterals being watched: {}".format(watch_graph._watch_chains.keys())
                 level = self._select_and_install(decisions, rules_set, watch_graph, level, decision_queue,
                             disable_rules, rule)
 
@@ -337,10 +354,13 @@ def _is_rule_fulfilled(rule, decisions, decision_queue):
     for literal in rule.literals:
         if literal <= 0:
             if not decisions.is_decided_install(abs(literal)):
+                print("negative literal {}, not decided install, next rule".format(literal))
                 return True
         else:
             if decisions.is_decided_install(abs(literal)):
+                print("> literal {}, decided install, next rule".format(literal))
                 return True
             if decisions.is_undecided(abs(literal)):
+                print("> literal {}, undecided: queuing".format(literal))
                 decision_queue.append(literal)
     return False

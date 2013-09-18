@@ -10,6 +10,12 @@ from depsolver.solver.rule \
     import \
         PackageRule
 
+class WatchChain(HasTraits):
+    _data = Instance(collections.deque)
+
+    def __init__(self, data, **kw):
+        super(WatchChain, self).__init__(_data=collections.deque(data), **kw)
+
 class RuleWatchNode(HasTraits):
     rule = Instance(PackageRule)
 
@@ -76,18 +82,19 @@ class RulesWatchGraph(HasTraits):
     """
     The RulesWatchGraph efficiently propagates decisions to other rules
     """
-    watch_chains = Instance(OrderedDict)
+    _watch_chains = Instance(OrderedDict)
 
     def __init__(self, **kw):
-        super(RulesWatchGraph, self).__init__(watch_chains=OrderedDict(), **kw)
+        super(RulesWatchGraph, self).__init__(_watch_chains=OrderedDict(), **kw)
 
     def insert(self, node):
         if not node.rule.is_assertion:
             for literal in (node.watch1, node.watch2):
-                if not literal in self.watch_chains:
-                    self.watch_chains[literal] = collections.deque()
+                print("insert literal {}".format(literal))
+                if not literal in self._watch_chains:
+                    self._watch_chains[literal] = collections.deque()
 
-                self.watch_chains[literal].appendleft(node)
+                self._watch_chains[literal].appendleft(node)
 
     def propagate_literal(self, decided_literal, level, decisions):
         """
@@ -121,13 +128,15 @@ class RulesWatchGraph(HasTraits):
         -------
         Rule|null If a conflict is found the conflicting rule is returned
         """
+        print("propagate {} @ level {}".format(decided_literal, level))
         # we invert the decided literal here, example:
         # A was decided => (-A|B) now requires B to be true, so we look for
         # rules which are fulfilled by -A, rather than A.
         literal = -decided_literal
 
-        chain = self.watch_chains.get(literal, [])
-        for node in chain:
+        chain = self._watch_chains.get(literal, [])
+        while len(chain) > 0:
+            node = chain.popleft()
             other_watch = node.other_watch(literal)
 
             if node.rule.enabled and not decisions.satisfy(other_watch):
@@ -164,9 +173,11 @@ class RulesWatchGraph(HasTraits):
         node:
             The rule node to be moved
         """
-        if not to_literal in self.watch_chains:
-            self.watch_chains[to_literal] = collections.deque()
+        print("moving from {} to {}".format(from_literal, to_literal))
+        if not to_literal in self._watch_chains:
+            self._watch_chains[to_literal] = collections.deque()
 
         node.move_watch(from_literal, to_literal)
-        self.watch_chains.pop(from_literal)
-        self.watch_chains[to_literal].appendleft(node)
+        print "removing @ offset {}".format(len(self._watch_chains[from_literal])-1)
+        self._watch_chains[from_literal].pop()
+        self._watch_chains[to_literal].appendleft(node)

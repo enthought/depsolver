@@ -110,13 +110,9 @@ class RulesGenerator(HasTraits):
         """
         jobs = self.request.jobs
 
-        #print "start", self.installed_map
         for package in six.itervalues(self.installed_map):
-            #print "@"
             self._add_package_rules(package)
-            #print "@@"
             self._add_updated_packages_rules(package)
-        #print "end"
 
         self._add_job_rules()
         return self.rules_set
@@ -218,6 +214,7 @@ class RulesGenerator(HasTraits):
         rule_type: str
             Rule's  type
         """
+        #print "adding rule {}".format(rule)
         if rule is not None and rule not in self.rules_set:
             self.rules_set.add_rule(rule, rule_type)
 
@@ -225,12 +222,12 @@ class RulesGenerator(HasTraits):
         """
         Create all the rules required to satisfy installing the given package.
         """
-        #print "add package rule", package
         work_queue = collections.deque()
         work_queue.append(package)
 
         while len(work_queue) > 0:
             p = work_queue.popleft()
+            #print "work queue candidate: {}-{}".format(p, p.id)
 
             if not p.id in self.added_package_ids:
                 self.added_package_ids.add(p.id)
@@ -241,6 +238,7 @@ class RulesGenerator(HasTraits):
                     rule = self._create_dependency_rule(p,
                             dependency_candidates, "package_requires",
                             str(dependency))
+                    print "adding rule {} for dependency {}".format(rule, dependency)
                     self._add_rule(rule, "package")
 
                     for candidate in dependency_candidates:
@@ -292,6 +290,7 @@ class RulesGenerator(HasTraits):
             return
 
         for package in job.packages:
+            #print "adding package {}".format(package)
             if not package in self.installed_map:
                 self._add_package_rules(package)
 

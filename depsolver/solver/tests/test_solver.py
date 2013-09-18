@@ -260,6 +260,10 @@ class TestSolverDecisionsScenario(unittest.TestCase):
         scenario = "single_dependency_multiple_provides.yaml"
         self._compute_decisions(scenario)
 
+    def test_buggy_scenario(self):
+        scenario = "buggy_scenario.yaml"
+        self._compute_decisions(scenario)
+
 class TestSolverScenario(unittest.TestCase):
     def _compute_operations(self, scenario_description):
         data_directory = op.join(op.dirname(__file__), "scenarios", "data", "rules_generator")

@@ -1,5 +1,5 @@
-.. image:: https://secure.travis-ci.org/enthought/depsolver.png
-    :alt: Travis CI Build Status
+.. image:: https://secure.travis-ci.org/enthought/depsolver.png?branch=master
+    :target: https://travis-ci.org/enthought/depsolver
 
 depsolver is a package dependency solver in python.
 

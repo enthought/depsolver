@@ -36,7 +36,7 @@ A more complex scenario which currently fails with pip
     d_1_1_0 = PackageInfo.from_string("D-1.1.0")
     d_0_9_0 = PackageInfo.from_string("D-0.9.0")
 
-    repo = Repository([a, b, c, d_1_1_0, d_0_9_0])
+    repo = Repository([a_1_0_0, b_1_0_0, c_1_0_0, d_1_1_0, d_0_9_0])
     installed_repo = Repository()
     pool = Pool([repo, installed_repo])
 

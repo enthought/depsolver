@@ -2,42 +2,42 @@ import six
 
 import collections
 
-from depsolver.errors \
+from ..errors \
     import \
         DepSolverError
 
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Instance, List, Long
 
-from depsolver.solver.decisions \
+from ..solver.decisions \
     import \
         DecisionsSet
-from depsolver.solver.operations \
+from ..solver.operations \
     import \
         Install, Update
-from depsolver.pool \
+from ..pool \
     import \
         Pool
-from depsolver.repository \
+from ..repository \
     import \
         Repository
-from depsolver.request \
+from ..request \
     import \
         Request
-from depsolver.solver.policy \
+from .policy \
     import \
         DefaultPolicy
-from depsolver.solver.rules_generator \
+from .rules_generator \
     import \
         RulesGenerator, RulesSet
-from depsolver.solver.rules_watch_graph \
+from .rules_watch_graph \
     import \
         RulesWatchGraph, RuleWatchNode
-from depsolver.solver.transaction \
+from .transaction \
     import \
         Transaction
 

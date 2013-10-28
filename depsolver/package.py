@@ -1,22 +1,22 @@
 import hashlib
 import re
 
-from depsolver._package_utils \
+from ._package_utils \
     import \
         parse_package_full_name
-from depsolver.requirement \
+from .requirement \
     import \
         Requirement
-from depsolver.utils \
+from .utils \
     import \
         Callable
-from depsolver.version \
+from .version \
     import \
         SemanticVersion, Version
-from depsolver.bundled.traitlets \
+from .bundled.traitlets \
     import \
         HasTraits, Instance, List, Long, Unicode
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError
 

@@ -3,28 +3,28 @@ import re
 
 import six
 
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Bool, Enum, Instance, List, Long, Unicode
-from depsolver.errors \
+from ..errors \
     import \
         DepSolverError, MissingPackageInfoInPool
-from depsolver._package_utils \
+from .._package_utils \
     import \
         is_valid_package_name
-from depsolver.package \
+from ..package \
     import \
         PackageInfo
-from depsolver.pool \
+from ..pool \
     import \
         Pool
-from depsolver.request \
+from ..request \
     import \
         _Job
-from depsolver.requirement \
+from ..requirement \
     import \
         Requirement
-from depsolver.version \
+from ..version \
     import \
         SemanticVersion, Version
 

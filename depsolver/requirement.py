@@ -1,19 +1,19 @@
-from depsolver._package_utils \
+from ._package_utils \
     import \
         parse_package_full_name
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError
-from depsolver.constraints \
+from .constraints \
     import \
         Equal, GEQ, GT, LEQ, LT, Not
-from depsolver.package \
+from .package \
     import \
         parse_package_full_name
-from depsolver.requirement_parser \
+from .requirement_parser \
     import \
         RawRequirementParser
-from depsolver.version \
+from .version \
     import \
         MaxVersion, MinVersion, SemanticVersion
 

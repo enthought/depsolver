@@ -1,13 +1,13 @@
-from depsolver.bundled.traitlets \
+from .bundled.traitlets \
     import \
         HasTraits, Enum, Instance, List
-from depsolver.requirement \
+from .requirement \
     import \
         Requirement
-from depsolver.package \
+from .package \
     import \
         PackageInfo
-from depsolver.pool \
+from .pool \
     import \
         Pool
 

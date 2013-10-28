@@ -3,13 +3,13 @@ import re
 
 import six
 
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError, InvalidVersion
-from depsolver.constraints \
+from .constraints \
     import \
         Any, Equal, GEQ, GT, LEQ, LT, Not
-from depsolver.version \
+from .version \
     import \
         _LOOSE_VERSION_RE
 

@@ -1,12 +1,12 @@
 import collections
 
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Instance, List, Long
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.solver.rule \
+from .rule \
     import \
         PackageRule
 

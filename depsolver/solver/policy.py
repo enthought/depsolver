@@ -2,16 +2,16 @@ import collections
 
 import six
 
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.errors \
+from ..errors \
     import \
         DepSolverError
-from depsolver.requirement \
+from ..requirement \
     import \
         Requirement
-from depsolver.version \
+from ..version \
     import \
         MaxVersion
 

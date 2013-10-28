@@ -1,7 +1,6 @@
 language: python
 python:
    - pypy
-   - 2.5
    - 2.6
    - 2.7
    - 3.2
@@ -10,8 +9,6 @@ env:
    - NEEDS_UNITTEST2=""
 matrix:
   include:
-    - python: 2.5
-      env: NEEDS_UNITTEST2="true"
     - python: 2.6
       env: NEEDS_UNITTEST2="true"
     - python: 2.7
@@ -19,8 +16,6 @@ matrix:
     - python: pypy
       env: NEEDS_UNITTEST2="true"
   exclude:
-    - python: 2.5
-      env: NEEDS_UNITTEST2=""
     - python: 2.6
       env: NEEDS_UNITTEST2=""
     - python: 2.7

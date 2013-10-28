@@ -1,7 +1,7 @@
 import sys
 
 if sys.version_info[:1] < (2, 7):
-    from .compat._collections import OrderedDict
+    from ._collections import OrderedDict
 
     def sorted_with_cmp(x, cmp):
         return sorted(x, cmp=cmp)
@@ -12,4 +12,4 @@ else:
     def sorted_with_cmp(x, cmp):
         return sorted(x, key=cmp_to_key(cmp))
 
-from .compat._itertools import izip_longest
+from ._itertools import izip_longest

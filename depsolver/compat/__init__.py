@@ -13,3 +13,6 @@ else:
         return sorted(x, key=cmp_to_key(cmp))
 
 from ._itertools import izip_longest
+
+def getexception():
+    return sys.exc_info()[1]

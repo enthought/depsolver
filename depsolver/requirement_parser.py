@@ -3,9 +3,6 @@ import re
 
 import six
 
-from .compat \
-    import \
-        getexception
 from .errors \
     import \
         DepSolverError, InvalidVersion
@@ -92,9 +89,9 @@ def iter_over_requirement(tokens):
                 block.append(token)
                 token = six.advance_iterator(tokens)
             yield block
-        except StopIteration:
+        except StopIteration as e:
             yield block
-            raise getexception()
+            raise e
 
 _OPERATOR_TO_SPEC = {
         EqualToken: Equal,

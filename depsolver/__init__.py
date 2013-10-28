@@ -4,7 +4,7 @@ try:
     from ._version \
         import \
             __version__
-except ImportError:
+except ImportError as e:
     __version__ = "no-built"
 
 from .package \

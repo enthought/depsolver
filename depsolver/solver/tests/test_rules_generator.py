@@ -171,6 +171,10 @@ class TestRulesGeneratorScenarios(unittest.TestCase):
 
         self.assertEqual(r_rules, rules)
 
+    def test_buggy_scenario(self):
+        scenario = "buggy_scenario.yaml"
+        self._compute_rules(scenario)
+
     def test_complex_scenario1(self):
         scenario = "complex_scenario1.yaml"
         self._compute_rules(scenario)

@@ -1,12 +1,12 @@
 import collections
 
-from depsolver.bundled.traitlets \
+from .bundled.traitlets \
     import \
         HasTraits, Instance, List, Unicode
-from depsolver.package \
+from .package \
     import \
         PackageInfo
-from depsolver.version \
+from .version \
     import \
         Version
 

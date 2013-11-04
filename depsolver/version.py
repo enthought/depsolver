@@ -2,7 +2,7 @@
 this time: http://semver.org)."""
 import re
 
-from depsolver.errors \
+from .errors \
     import \
         InvalidVersion
 

@@ -3,10 +3,10 @@ import copy
 
 import six
 
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError
-from depsolver.bundled.traitlets \
+from .bundled.traitlets \
     import \
         TraitType, Undefined
 

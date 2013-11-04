@@ -2,13 +2,13 @@ import re
 
 import six
 
-from depsolver.compat \
+from .compat \
     import \
         izip_longest
-from depsolver.errors \
+from .errors \
     import \
         InvalidVersion
-from depsolver.version \
+from .version \
     import \
         Version
 

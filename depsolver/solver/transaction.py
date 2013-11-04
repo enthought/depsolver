@@ -2,22 +2,22 @@ import copy
 
 import six
 
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Instance, List
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.pool \
+from ..pool \
     import \
         Pool
-from depsolver.solver.decisions \
+from .decisions \
     import \
         DecisionsSet
-from depsolver.solver.operations \
+from .operations \
     import \
         Operation, Install, Uninstall, Update
-from depsolver.solver.policy \
+from .policy \
     import \
         DefaultPolicy
 

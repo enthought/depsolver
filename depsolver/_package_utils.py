@@ -1,6 +1,6 @@
 import re
 
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError
 

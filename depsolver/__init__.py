@@ -1,25 +1,27 @@
+from __future__ import absolute_import
+
 try:
-    from depsolver._version \
+    from ._version \
         import \
             __version__
 except ImportError as e:
     __version__ = "no-built"
 
-from depsolver.package \
+from .package \
     import\
         PackageInfo
-from depsolver.pool \
+from .pool \
     import\
         Pool
-from depsolver.repository \
+from .repository \
     import\
         Repository
-from depsolver.request \
+from .request \
     import\
         Request
-from depsolver.requirement \
+from .requirement \
     import\
         Requirement
-from depsolver.solver.core \
+from .solver.core \
     import\
         Solver

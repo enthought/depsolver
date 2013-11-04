@@ -1,9 +1,9 @@
 import re
 
-from depsolver.errors \
+from .errors \
     import \
         InvalidVersion
-from depsolver.version \
+from .version \
     import \
         Version
 

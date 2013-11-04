@@ -2,17 +2,17 @@ import collections
 
 import six
 
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Dict, Instance
-from depsolver.errors \
+from ..errors \
     import \
         DepSolverError
 
-from depsolver.pool \
+from ..pool \
     import \
         Pool
 

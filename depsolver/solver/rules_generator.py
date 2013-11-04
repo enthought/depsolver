@@ -2,28 +2,28 @@ import collections
 
 import six
 
-from depsolver.compat \
+from ..compat \
     import \
         OrderedDict
-from depsolver.bundled.traitlets \
+from ..bundled.traitlets \
     import \
         HasTraits, Dict, Enum, Instance, List, Long, Set, Unicode
-from depsolver.errors \
+from ..errors \
     import \
         MissingRequirementInPool
-from depsolver.solver.policy \
+from ..solver.policy \
     import \
         DefaultPolicy
-from depsolver.pool \
+from ..pool \
     import \
         Pool
-from depsolver.request \
+from ..request \
     import \
         Request
-from depsolver.requirement \
+from ..requirement \
     import \
         Requirement
-from depsolver.solver.rule \
+from .rule \
     import \
         PackageRule
 

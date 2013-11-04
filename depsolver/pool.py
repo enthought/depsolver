@@ -1,21 +1,21 @@
 import collections
 
-from depsolver.bundled.traitlets \
+from .bundled.traitlets \
     import \
         HasTraits, Dict, Instance, List, Long, Unicode
-from depsolver.errors \
+from .errors \
     import \
         DepSolverError, MissingPackageInfoInPool
-from depsolver.package \
+from .package \
     import \
         PackageInfo
-from depsolver.repository \
+from .repository \
     import \
         Repository
-from depsolver.requirement \
+from .requirement \
     import \
         Requirement
-from depsolver.utils \
+from .utils \
     import \
         CachedScheduler
 

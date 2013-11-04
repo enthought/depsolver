@@ -138,6 +138,18 @@ class TestPackageInfoFromString(unittest.TestCase):
         self.assertEqual(package.package_string, r_package_string)
 
 class TestParsePackageName(unittest.TestCase):
+    def test_multiple_dependencies(self):
+        r_package_string = "scipy-0.12.0; depends (numpy >= 1.6.0, " \
+                           "numpy < 1.7.0, MKL >= 10.3.0, MKL < 10.4.0)"
+        r_package = PackageInfo(name="scipy", version=V("0.12.0"),
+                                dependencies=[R("numpy >= 1.6.0, numpy < 1.7.0"),
+                                              R("MKL >= 10.3.0, MKL < 10.4.0")])
+
+        package = PackageInfo.from_string(r_package_string)
+
+        self.assertEqual(package, r_package)
+        self.assertEqual(package.package_string, r_package_string)
+
     def test_simple(self):
         name, version = parse_package_full_name("numpy-1.6.0")
         self.assertEqual(name, "numpy")

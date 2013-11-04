@@ -3,6 +3,9 @@ import re
 
 import six
 
+from .compat \
+    import \
+        OrderedDict
 from ._package_utils \
     import \
         parse_package_full_name
@@ -45,9 +48,11 @@ def _parse_requirements_string(parser, s, version_factory):
         raise ValueError("invalid requirement string: %r" % s)
     else:
         requirements_type, requirements_string = m.groups()
-        requirements = collections.defaultdict(list)
+        requirements = OrderedDict()
         for requirement_string in requirements_string.split(","):
             for distribution_name, specs in parser.parse(requirement_string).items():
+                if not distribution_name in requirements:
+                    requirements[distribution_name] = []
                 requirements[distribution_name].extend(specs)
         return requirements_type, \
                [Requirement(name, reqs, version_factory)

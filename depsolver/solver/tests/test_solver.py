@@ -278,6 +278,10 @@ class TestSolverScenario(unittest.TestCase):
 
         self.assertEqual([str(operation) for operation in operations], r_operation_strings)
 
+    def test_buggy_scenario(self):
+        scenario = "buggy_scenario.yaml"
+        self._compute_operations(scenario)
+
     def test_complex_scenario1(self):
         scenario = "complex_scenario1.yaml"
         self._compute_operations(scenario)

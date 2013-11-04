@@ -10,6 +10,45 @@ from .rule \
     import \
         PackageRule
 
+# FIXME: terrible, terrible class to emulate broken php SplDoublyLinkedList
+# behavior. Remove once we get the SAT running and tested in all the cases we
+# care about
+class RuleWatchChain(HasTraits):
+    _data = Instance(collections.deque)
+    _cur_index = Long()
+
+    def __init__(self, **kw):
+        super(RuleWatchChain, self).__init__(_data=collections.deque(), **kw)
+        self._cur_index = -1
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def rewind(self):
+        self._cur_index = 0
+
+    def is_valid(self):
+        return self._cur_index >= 0 and self._cur_index < len(self._data)
+
+    def current(self):
+        if self.is_valid():
+            return self._data[self._cur_index]
+
+    def next(self):
+        self._cur_index += 1
+
+    def remove(self):
+        if self.is_valid():
+            del self._data[self._cur_index]
+        else:
+            self._data.popleft()
+
+    def unshift(self, item):
+        return self._data.appendleft(item)
+
 class RuleWatchNode(HasTraits):
     rule = Instance(PackageRule)
 
@@ -85,9 +124,9 @@ class RulesWatchGraph(HasTraits):
         if not node.rule.is_assertion:
             for literal in (node.watch1, node.watch2):
                 if not literal in self.watch_chains:
-                    self.watch_chains[literal] = collections.deque()
+                    self.watch_chains[literal] = RuleWatchChain()
 
-                self.watch_chains[literal].appendleft(node)
+                self.watch_chains[literal].unshift(node)
 
     def propagate_literal(self, decided_literal, level, decisions):
         """
@@ -126,8 +165,10 @@ class RulesWatchGraph(HasTraits):
         # rules which are fulfilled by -A, rather than A.
         literal = -decided_literal
 
-        chain = self.watch_chains.get(literal, [])
-        for node in chain:
+        chain = self.watch_chains.get(literal, RuleWatchChain())
+        chain.rewind()
+        while chain.is_valid():
+            node = chain.current()
             other_watch = node.other_watch(literal)
 
             if node.rule.enabled and not decisions.satisfy(other_watch):
@@ -147,6 +188,8 @@ class RulesWatchGraph(HasTraits):
 
                 decisions.decide(other_watch, level, node.rule)
 
+            chain.next()
+
         return None
 
     def move_watch(self, from_literal, to_literal, node):
@@ -165,8 +208,8 @@ class RulesWatchGraph(HasTraits):
             The rule node to be moved
         """
         if not to_literal in self.watch_chains:
-            self.watch_chains[to_literal] = collections.deque()
+            self.watch_chains[to_literal] = RuleWatchChain()
 
         node.move_watch(from_literal, to_literal)
-        self.watch_chains.pop(from_literal)
-        self.watch_chains[to_literal].appendleft(node)
+        self.watch_chains[from_literal].remove()
+        self.watch_chains[to_literal].unshift(node)

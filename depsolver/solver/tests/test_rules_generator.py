@@ -192,6 +192,12 @@ class TestRulesGeneratorScenarios(unittest.TestCase):
         scenario = "multiple_provides_4_candidates.yaml"
         self._compute_rules(scenario)
 
+    def test_multiple_provides_numpy(self):
+        """Test rules creation for a single package with dependencies and
+        multiple candidates."""
+        scenario = "multiple_provides_numpy.yaml"
+        self._compute_rules(scenario)
+
     def test_multiple_provides_single_fulfilled_provides(self):
         """Test rules creation when multiple versions are available but only
         one fulfills the request."""

@@ -2,7 +2,7 @@ import collections
 
 from ..bundled.traitlets \
     import \
-        HasTraits, Instance, List, Long
+        HasTraits, Instance, Long
 from ..compat \
     import \
         OrderedDict

@@ -1,10 +1,6 @@
-import sys
-
-if sys.version_info[:2] < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
+from depsolver.compat \
+    import \
+        unittest
 from depsolver.debian_version \
     import \
         DebianVersion, is_valid_debian_version

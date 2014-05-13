@@ -1,15 +1,8 @@
-import six
-
-if six.PY3:
-    import unittest
-else:
-    import unittest2 as unittest
-
 import os.path as op
 
 from depsolver.compat \
     import \
-        OrderedDict
+        OrderedDict, unittest
 from depsolver.package \
     import \
         PackageInfo
@@ -159,7 +152,7 @@ class TestRulesSet(unittest.TestCase):
 class TestRulesGeneratorScenarios(unittest.TestCase):
     def _compute_rules(self, scenario_description):
         filename = op.join(DATA, scenario_description)
-        
+
         fp = open(op.join(DATA, op.splitext(scenario_description)[0] + ".test"))
         try:
             r_rules = [line.rstrip() for line in fp]

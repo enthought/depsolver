@@ -1,15 +1,8 @@
-import six
-
-if six.PY3:
-    import unittest
-else:
-    import unittest2 as unittest
-
 import collections
 
 from depsolver.compat \
     import \
-        OrderedDict, sorted_with_cmp
+        OrderedDict, sorted_with_cmp, unittest
 from depsolver.package \
     import \
         PackageInfo

@@ -1,12 +1,8 @@
-import six
-
-if not six.PY3:
-    import unittest2 as unittest
-else:
-    import unittest
-
 import os.path as op
 
+from depsolver.compat \
+    import \
+        unittest
 from depsolver.pool \
     import \
         Pool

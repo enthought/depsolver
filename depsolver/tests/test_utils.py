@@ -1,13 +1,9 @@
-import six
-
-if six.PY3:
-    import unittest
-else:
-    import unittest2 as unittest
-
 from depsolver.bundled.traitlets \
     import \
         HasTraits, TraitError
+from depsolver.compat \
+    import \
+        unittest
 from depsolver.errors \
     import \
         DepSolverError

@@ -1,5 +1,7 @@
 import collections
 
+import six
+
 from depsolver.compat \
     import \
         OrderedDict, sorted_with_cmp, unittest
@@ -33,24 +35,6 @@ class TestDefaultPolicy(unittest.TestCase):
 
         candidates = policy.select_preferred_packages(pool, {}, queue)
         self.assertEqual(list(candidates), [self.mkl_11_0_0.id])
-
-    def test_simple_fulfilled_installed(self):
-        """Ensure the policy returns the installed version first if it fulfills
-        the requirement, even if higher versions are available."""
-        mkl_10_4_0 = P("mkl-10.4.0")
-        remote_repository = Repository([self.mkl_10_3_0, self.mkl_11_0_0])
-        installed_repository = Repository([mkl_10_4_0])
-
-        pool = Pool([installed_repository, remote_repository])
-        policy = DefaultPolicy()
-
-        queue = [p.id for p in [mkl_10_4_0, self.mkl_10_3_0, self.mkl_11_0_0]]
-
-        candidates = policy.select_preferred_packages(pool, {}, queue)
-        self.assertEqual(list(candidates), [self.mkl_11_0_0.id])
-
-        candidates = policy.prefered_package_ids(pool, {mkl_10_4_0.id: True}, queue)
-        self.assertEqual(list(candidates), [mkl_10_4_0.id, self.mkl_11_0_0.id])
 
     def test_simple_fulfilled_installed(self):
         """Ensure the policy returns the installed version first if it fulfills

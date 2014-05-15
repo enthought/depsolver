@@ -16,3 +16,5 @@ else:
     import unittest
 
 from ._itertools import izip_longest
+
+__all__ = ["OrderedDict", "sorted_with_cmp", "unittest", "izip_longest"]

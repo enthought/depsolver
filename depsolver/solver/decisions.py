@@ -1,13 +1,11 @@
 import collections
 
-import six
-
 from ..compat \
     import \
         OrderedDict
 from ..bundled.traitlets \
     import \
-        HasTraits, Dict, Instance
+        HasTraits, Instance
 from ..errors \
     import \
         DepSolverError

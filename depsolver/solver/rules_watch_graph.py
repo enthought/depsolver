@@ -82,8 +82,13 @@ class RuleWatchNode(HasTraits):
     def watch2_on_highest(self, decisions):
         """
         Places the second watch on the rule's literal, decided at the highest level
+
+        Parameters
+        ----------
+        decisions: DecisionsSet
+            The set of decisions made so far by the solver
         """
-        if len(rule.literals) >= 3:
+        if len(self.rule.literals) >= 3:
             watch_level = 0
             for literal in self.literals:
                 level = decisions.decision_level(literal)
@@ -121,6 +126,14 @@ class RulesWatchGraph(HasTraits):
         super(RulesWatchGraph, self).__init__(watch_chains=OrderedDict(), **kw)
 
     def insert(self, node):
+        """
+        Insert a new rule watch node into the graph.
+
+        Parameters
+        ----------
+        node: RuleWatchNode
+            The rule node to be inserted into the graph
+        """
         if not node.rule.is_assertion:
             for literal in (node.watch1, node.watch2):
                 if not literal in self.watch_chains:
@@ -158,15 +171,19 @@ class RulesWatchGraph(HasTraits):
 
         Returns
         -------
-        Rule|null If a conflict is found the conflicting rule is returned
+        PackageRule If a conflict is found the conflicting rule is returned
         """
         # we invert the decided literal here, example:
         # A was decided => (-A|B) now requires B to be true, so we look for
         # rules which are fulfilled by -A, rather than A.
         literal = -decided_literal
 
-        chain = self.watch_chains.get(literal, RuleWatchChain())
+        if not literal in self.watch_chains:
+            return
+
+        chain = self.watch_chains[literal]
         chain.rewind()
+
         while chain.is_valid():
             node = chain.current()
             other_watch = node.other_watch(literal)
@@ -177,10 +194,11 @@ class RulesWatchGraph(HasTraits):
                 def _filtre(rule_literal):
                     return literal != rule_literal and other_watch != rule_literal \
                             and not decisions.conflict(rule_literal)
-                alternative_literals = [rule_literal for rule_literal in rule_literals if _filtre(rule_literal)]
+                alternative_literals = [rule_literal for rule_literal in
+                                        rule_literals if _filtre(rule_literal)]
 
                 if len(alternative_literals) > 0:
-                    self.move_watch(literal, alternative_literals[0], node)
+                    self._move_watch(literal, alternative_literals[0], node)
                     continue
 
                 if decisions.conflict(other_watch):
@@ -190,9 +208,7 @@ class RulesWatchGraph(HasTraits):
 
             chain.next()
 
-        return None
-
-    def move_watch(self, from_literal, to_literal, node):
+    def _move_watch(self, from_literal, to_literal, node):
         """
         Moves a rule node from one watch chain to another
 

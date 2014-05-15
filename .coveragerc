@@ -1,3 +1,4 @@
 [report]
 omit = depsolver/bundled/*
        depsolver/compat/*
+       */tests/*

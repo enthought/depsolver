@@ -31,6 +31,9 @@ from ..request \
 from .policy \
     import \
         DefaultPolicy
+from .rule \
+    import \
+        PackageRule
 from .rules_generator \
     import \
         RulesGenerator, RulesSet
@@ -56,9 +59,13 @@ class Solver(HasTraits):
     _propagate_index = Long(-1)
     _learnt_why = Instance(OrderedDict)
     _branches = List(Instance(_BRANCH_INFO))
+    _learned_pool = List(List(Instance(PackageRule)))
 
     def __init__(self, pool, installed_repository, **kw):
-        policy = DefaultPolicy()
+        if "policy" in kw:
+            policy = kw.pop("policy")
+        else:
+            policy = DefaultPolicy()
         installed_map = OrderedDict()
         update_map = OrderedDict()
         learnt_why = OrderedDict()
@@ -68,7 +75,8 @@ class Solver(HasTraits):
                 installed_map=installed_map,
                 update_map=update_map,
                 _learnt_why=learnt_why,
-                _branches=branches, **kw)
+                _branches=branches,
+                _learned_pool=[], **kw)
 
     def solve(self, request):
         decisions = self._solve(request)

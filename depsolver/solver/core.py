@@ -176,7 +176,8 @@ class Solver(HasTraits):
             decision_queue = pruned_queue
         return decision_queue
 
-    def _set_propagate_learn(self, decisions, rules_set, watch_graph, level, literal, disable_rules, rule):
+    def _set_propagate_learn(self, decisions, rules_set, watch_graph, level,
+                             literal, disable_rules, rule):
         """
         add free decision (a positive literal) to decision queue
         increase level and propagate decision

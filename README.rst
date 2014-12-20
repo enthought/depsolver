@@ -1,6 +1,11 @@
 .. image:: https://secure.travis-ci.org/enthought/depsolver.png?branch=master
     :target: https://travis-ci.org/enthought/depsolver
 
+.. note:: the work on depsolver is temporarily handed over to the
+  enstaller project (in enstaller.new_solver), to ease the integration
+  with our needs at Enthought. Once the integration is over, we will
+  extract back the solver into depsolver.
+
 depsolver is a package dependency solver in python.
 
 Examples::

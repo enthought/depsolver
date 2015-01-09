@@ -65,3 +65,11 @@ The design is strongly inspired from `PHP Composer packager
 <http://getcomposer.org>`_, itself started as a port of libsolver.
 
 Thanks to Enthought to let me open source this project !
+
+Note:
+
+     The work on depsolver is temporarily handed over to the enstaller
+     project (in enstaller.new_solver), to ease the integration with our
+     needs at Enthought. Once the implementation will be finished, we will
+     extract back the solver into depsolver. We expect a fully functional
+     solver for end of Q1 2015.
